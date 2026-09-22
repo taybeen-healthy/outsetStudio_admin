@@ -1,0 +1,69 @@
+<div class="page-header">
+  <div class="page-breadcrumb">STUDIO OPERATIONS OVERVIEW → FY 2024–25</div>
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-desc">Overview of studio enquiries, client reviews, projects, and vendor registrations across active regional sites.</p>
+  <div class="page-date-card">
+    <span class="date-dot"></span>
+    STUDIO ACTIVE • <%= user.location.toUpperCase() %> • <span id="currentDate"></span>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <span class="stat-label">TOTAL PROJECTS</span>
+      <i class="fa-solid fa-building stat-icon"></i>
+    </div>
+    <div class="stat-number"><%= stats.totalProjects.toString().padStart(2, '0') %></div>
+    <div class="stat-sublabel"><%= stats.totalProjectsLabel %></div>
+    <div class="stat-footer">
+      <span class="stat-highlight"><%= stats.totalProjectsHighlight %></span>
+      <span class="stat-value orange"><%= stats.totalProjectsValue %></span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <span class="stat-label">NEW ENQUIRIES</span>
+      <i class="fa-regular fa-envelope stat-icon"></i>
+    </div>
+    <div class="stat-number orange"><%= stats.newEnquiries.toString().padStart(2, '0') %></div>
+    <div class="stat-sublabel"><%= stats.newEnquiriesLabel %></div>
+    <div class="stat-footer">
+      <span class="stat-highlight"><%= stats.newEnquiriesHighlight %></span>
+      <span class="stat-value"><%= stats.newEnquiriesValue %></span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <span class="stat-label">PENDING REVIEWS</span>
+      <i class="fa-regular fa-comment-dots stat-icon"></i>
+    </div>
+    <div class="stat-number"><%= stats.pendingReviews.toString().padStart(2, '0') %></div>
+    <div class="stat-sublabel"><%= stats.pendingReviewsLabel %></div>
+    <div class="stat-footer">
+      <span class="stat-highlight"><%= stats.pendingReviewsHighlight %></span>
+      <span class="stat-value"><%= stats.pendingReviewsValue %></span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-header">
+      <span class="stat-label">VENDOR REGISTRATIONS</span>
+      <i class="fa-solid fa-people-group stat-icon"></i>
+    </div>
+    <div class="stat-number"><%= stats.vendorRegistrations.toString().padStart(2, '0') %></div>
+    <div class="stat-sublabel"><%= stats.vendorRegistrationsLabel %></div>
+    <div class="stat-footer">
+      <span class="stat-highlight"><%= stats.vendorRegistrationsHighlight %></span>
+      <span class="stat-value"><%= stats.vendorRegistrationsValue %></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const now = new Date();
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('currentDate').textContent = now.toLocaleDateString('en-US', options).toUpperCase();
+</script>
