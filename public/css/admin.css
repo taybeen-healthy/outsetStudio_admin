@@ -127,7 +127,7 @@ body {
 
 .forgot-link {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-dark);
   text-decoration: none;
 }
@@ -443,7 +443,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 36px;
+  padding: 14px 36px;
   background: var(--white);
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -454,8 +454,16 @@ body {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font-size: 13px;
+}
+
+.header-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  display: inline-block;
 }
 
 .header-location {
@@ -464,21 +472,28 @@ body {
 }
 
 .header-divider {
-  color: var(--text-light);
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  display: inline-block;
 }
 
-.header-status {
-  color: var(--text-muted);
-  display: flex;
+.header-status-badge {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dark);
+  letter-spacing: 0.5px;
 }
 
-.status-dot {
+.status-square {
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: var(--green);
+  background: var(--primary);
   display: inline-block;
 }
 
@@ -563,7 +578,7 @@ body {
 
 .page-breadcrumb {
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--primary);
   letter-spacing: 1.5px;
   margin-bottom: 8px;
@@ -924,6 +939,281 @@ body {
 
 .save-btn:hover {
   background: var(--primary-light);
+}
+
+/* ===== PAGE HEADER ROW ===== */
+.page-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-section-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 20px;
+  color: var(--primary);
+  font-weight: 400;
+}
+
+.page-badge {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  padding: 4px 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.view-all-link {
+  font-size: 13px;
+  color: var(--primary);
+  text-decoration: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 400;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+/* ===== PROJECT TABLE ===== */
+.project-name {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.project-code {
+  font-size: 12px;
+  color: var(--primary);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.location-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-text i {
+  font-size: 11px;
+  color: var(--primary);
+}
+
+/* ===== STAGE BADGES ===== */
+.stage-badge {
+  display: inline-block;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  border-radius: 0;
+}
+
+.stage-site-visit {
+  background: var(--white);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.stage-design-exec {
+  background: var(--white);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.stage-confirmed {
+  background: var(--white);
+  color: var(--text-dark);
+  border: 1.5px solid var(--text-dark);
+  letter-spacing: 0.5px;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-bar {
+  width: 100px;
+  height: 6px;
+  background: #e8e4dc;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 0;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ===== VIEW BUTTON ===== */
+.view-btn {
+  font-size: 13px;
+  color: var(--text-dark);
+  text-decoration: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  display: inline-block;
+}
+
+.view-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ===== REVIEWS PAGE ===== */
+.client-name {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.project-ref {
+  font-size: 13px;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.client-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.testimonial-text {
+  font-size: 13px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.review-stars {
+  color: #d4673e;
+  font-size: 14px;
+  letter-spacing: 2px;
+  margin-top: 8px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.approve-btn {
+  padding: 6px 16px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.approve-btn:hover {
+  background: var(--primary-light);
+}
+
+.decline-btn {
+  padding: 6px 16px;
+  background: var(--white);
+  color: var(--text-dark);
+  border: 1px solid var(--border);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.decline-btn:hover {
+  border-color: var(--text-dark);
+}
+
+/* ===== ENQUIRIES PAGE ===== */
+.client-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.service-name {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.service-scope {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.date-text {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+/* ===== VENDORS PAGE ===== */
+.vendor-email {
+  font-size: 13px;
+  color: var(--text-dark);
+}
+
+.client-name {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.client-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.trade-tag {
+  font-size: 13px;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trade-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.trade-joinery {
+  background: var(--primary);
+}
+
+.trade-stone {
+  background: #8B7355;
 }
 
 /* ===== RESPONSIVE ===== */
