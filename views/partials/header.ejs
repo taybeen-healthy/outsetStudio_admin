@@ -1,8 +1,12 @@
 <header class="top-header">
   <div class="header-left">
+    <span class="header-dot"></span>
     <span class="header-location"><%= user.location %> Admin</span>
-    <span class="header-divider">•</span>
-    <span class="header-status"><span class="status-dot"></span> STUDIO ACTIVE • <%= user.location.toUpperCase() %></span>
+    <span class="header-divider"></span>
+    <span class="header-status-badge">
+      <span class="status-square"></span>
+      STUDIO ACTIVE • <%= user.location.toUpperCase() %>
+    </span>
   </div>
   <div class="header-right">
     <div class="search-box">
