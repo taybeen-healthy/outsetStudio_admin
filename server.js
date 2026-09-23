@@ -26,14 +26,14 @@ app.use(session({
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 
-app.use('/auth', authRoutes);
+app.use('/', authRoutes);
 app.use('/admin', adminRoutes);
 
 app.get('/', (req, res) => {
   if (req.session.isAdmin) {
     return res.redirect('/admin/dashboard');
   }
-  res.redirect('/auth/login');
+  res.redirect('/login');
 });
 
 app.listen(PORT, () => {

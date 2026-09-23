@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 function requireAuth(req, res, next) {
-  if (!req.session.isAdmin) return res.redirect('/auth/login');
+  if (!req.session.isAdmin) return res.redirect('/login');
   next();
 }
 

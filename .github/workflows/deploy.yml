@@ -38,7 +38,7 @@ jobs:
             export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:$PATH
             
             echo "=== Starting Outset Studio Backend Deploy ==="
-            cd /var/www/outsetStudio_Backend
+            cd /var/www/outsetStudio_admin
             git fetch origin main
             git reset --hard origin/main
             
