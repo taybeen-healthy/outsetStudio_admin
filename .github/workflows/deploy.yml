@@ -48,7 +48,7 @@ jobs:
             echo "ADMIN_PASSWORD=admin123" >> .env
             
             npm ci --production
-            chmod -R 755 /var/www/outsetStudio_Backend
+            chmod -R 755 /var/www/outsetStudio_admin
             
             pm2 startup systemd -u $USER --hp $HOME 2>/dev/null || true
             
