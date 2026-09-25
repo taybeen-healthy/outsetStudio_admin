@@ -1,92 +1,49 @@
-<div class="page-header">
-  <div class="page-breadcrumb">STUDIO OPERATIONS OVERVIEW → FY 2026–27</div>
-  <div class="page-header-row">
-    <div class="page-header-left">
-      <span class="page-section-num">01</span>
-      <h1 class="page-title">Active Projects</h1>
-      <span class="page-badge">8 Active Commissions</span>
-    </div>
-    <a href="#" class="view-all-link">View All Projects →</a>
-  </div>
+<div class="page-header projects-header">
+  <div class="page-breadcrumb breadcrumb-orange"><span class="bc-square"></span> STUDIO PROJECT</div>
+  <h1 class="page-title">Projects</h1>
+  <p class="page-desc projects-desc">Manage active architectural briefs, site surveys, turnkey execution tranches, vendor disbursements, and archival sign-offs across Indian metropolitan practices.</p>
 </div>
 
-<div class="table-container">
-  <table class="data-table">
+<div class="table-container projects-table-wrap">
+  <table class="data-table projects-table">
     <thead>
       <tr>
-        <th>PROJECT & CODE</th>
-        <th>CLIENT ENTITY</th>
-        <th>LOCATION</th>
-        <th>STAGE</th>
+        <th>PROJECT &amp; CLIENT</th>
+        <th>LOCATION / SCALE</th>
+        <th>STATUS</th>
         <th>PROGRESS</th>
-        <th>ACTION</th>
+        <th class="th-right">FEES</th>
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>
-          <div class="project-name">Rae Hotel Delhi</div>
-          <div class="project-code">#OS-DEL-01</div>
-        </td>
-        <td>ABC Hospitality</td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> Civil Lines Delhi</span></td>
-        <td><span class="stage-badge stage-site-visit">SITE VISIT</span></td>
-        <td>
-          <div class="progress-cell">
-            <div class="progress-bar"><div class="progress-fill" style="width: 40%"></div></div>
-            <span class="progress-text">40%</span>
-          </div>
-        </td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
-      <tr>
-        <td>
-          <div class="project-name">Nova Café Mumbai</div>
-          <div class="project-code">#OS-BOM-08</div>
-        </td>
-        <td>Mehta F&B Group</td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> Bandra West Mumbai</span></td>
-        <td><span class="stage-badge stage-design-exec">DESIGN / EXEC</span></td>
-        <td>
-          <div class="progress-cell">
-            <div class="progress-bar"><div class="progress-fill" style="width: 70%"></div></div>
-            <span class="progress-text">70%</span>
-          </div>
-        </td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
-      <tr>
-        <td>
-          <div class="project-name">Urban Retail Gallery</div>
-          <div class="project-code">#OS-BLR-14</div>
-        </td>
-        <td>Urban Living Co.</td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> Indiranagar Bengaluru</span></td>
-        <td><span class="stage-badge stage-confirmed">CONFIRMED</span></td>
-        <td>
-          <div class="progress-cell">
-            <div class="progress-bar"><div class="progress-fill" style="width: 15%"></div></div>
-            <span class="progress-text">15%</span>
-          </div>
-        </td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
-      <tr>
-        <td>
-          <div class="project-name">The Work Loft Gurgaon</div>
-          <div class="project-code">#OS-DEL-04</div>
-        </td>
-        <td>Apex Studio Spaces</td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> CyberHub Gurgaon</span></td>
-        <td><span class="stage-badge stage-design-exec">DESIGN / EXEC</span></td>
-        <td>
-          <div class="progress-cell">
-            <div class="progress-bar"><div class="progress-fill" style="width: 85%"></div></div>
-            <span class="progress-text">85%</span>
-          </div>
-        </td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
+      <% projects.forEach(function(p) { %>
+        <tr>
+          <td>
+            <div class="project-name-row">
+              <span class="project-name"><%= p.name %></span>
+              <span class="project-code-chip"><%= p.code %></span>
+            </div>
+            <div class="client-name-sm"><%= p.client %></div>
+          </td>
+          <td>
+            <div class="loc-primary"><%= p.location %></div>
+            <div class="loc-scale"><%= p.scale %></div>
+          </td>
+          <td>
+            <span class="status-pill status-<%= p.statusClass %>"><%= p.status %></span>
+          </td>
+          <td>
+            <div class="progress-cell">
+              <div class="progress-bar"><div class="progress-fill" style="width: <%= p.progress %>%"></div></div>
+              <span class="progress-text"><%= p.progress %>%</span>
+            </div>
+          </td>
+          <td class="td-fees">
+            <div class="fee-amount <%= p.feeClass %>"><%= p.fees %></div>
+            <div class="fee-status"><%= p.feeStatus %></div>
+          </td>
+        </tr>
+      <% }); %>
     </tbody>
   </table>
 </div>

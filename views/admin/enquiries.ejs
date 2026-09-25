@@ -1,69 +1,131 @@
 <div class="page-header">
-  <div class="page-breadcrumb">STUDIO OPERATIONS OVERVIEW → FY 2026–27</div>
-  <div class="page-header-row">
-    <div class="page-header-left">
-      <span class="page-section-num">03</span>
-      <h1 class="page-title">Recent Enquiries</h1>
-    </div>
-    <a href="#" class="view-all-link">View All Enquiries →</a>
-  </div>
+  <div class="page-breadcrumb"><span class="bc-square"></span> INBOUND CLIENT COMMISSIONS <span class="bc-accent">• STUDIO ARCHIVAL LOG / OUTSET STUDIO • DELHI HQ ADMIN</span></div>
+  <h1 class="page-title">Recent Enquiries</h1>
+  <p class="page-desc enq-page-desc">Review, evaluate, and qualify incoming retail, café, hospitality, and residential architecture enquiries across Indian metropolitan studios.</p>
 </div>
 
-<div class="table-container">
-  <table class="data-table">
-    <thead>
-      <tr>
-        <th>CLIENT NAME</th>
-        <th>PROJECT / SERVICE</th>
-        <th>DATE LOGGED</th>
-        <th>LOCATION</th>
-        <th>STATUS</th>
-        <th>ACTION</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <div class="client-name">Tanya Sharma</div>
-          <div class="client-email">tanya.sharma@culturecraft.in</div>
-        </td>
-        <td>
-          <div class="service-name">Retail & Art Gallery</div>
-          <div class="service-scope">Scope: 4,500 sq.ft turnkey</div>
-        </td>
-        <td><span class="date-text">22 Oct 2024</span></td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> Jaipur, Rajasthan</span></td>
-        <td><span class="stage-badge stage-site-visit">NEW</span></td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
-      <tr>
-        <td>
-          <div class="client-name">Karan Mehta</div>
-          <div class="client-email">karan@mehtahospitality.com</div>
-        </td>
-        <td>
-          <div class="service-name">Café Interior Architecture</div>
-          <div class="service-scope">Scope: Adaptive reuse, heritage building</div>
-        </td>
-        <td><span class="date-text">19 Oct 2024</span></td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> Bandra, Mumbai</span></td>
-        <td><span class="stage-badge stage-design-exec">IN DISCUSSION</span></td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
-      <tr>
-        <td>
-          <div class="client-name">Ananya Sood</div>
-          <div class="client-email">ananya.sood@indiatimes.com</div>
-        </td>
-        <td>
-          <div class="service-name">Residential Penthouse</div>
-          <div class="service-scope">Scope: Interior architecture + bespoke furniture</div>
-        </td>
-        <td><span class="date-text">15 Oct 2024</span></td>
-        <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> Indiranagar, Bengaluru</span></td>
-        <td><span class="stage-badge stage-site-visit">CONFIRMED</span></td>
-        <td><a href="#" class="view-btn">View →</a></td>
-      </tr>
-    </tbody>
-  </table>
+<div class="enquiries-layout">
+  <div class="enq-main">
+    <div class="enq-card">
+      <div class="enq-toolbar">
+        <div class="enq-tabs">
+          <% tabs.forEach(function(t) { %>
+            <a href="/admin/enquiries?status=<%= t.key %>" class="enq-tab <%= activeTab === t.key ? 'active' : '' %>"><%= t.label %></a>
+          <% }); %>
+        </div>
+        <div class="enq-toolbar-right">
+          <div class="enq-filter-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Filter by client name, city...">
+          </div>
+          <div class="enq-view-toggle">
+            <button class="enq-view-btn active" type="button"><i class="fa-solid fa-list-ul"></i></button>
+            <button class="enq-view-btn" type="button"><i class="fa-solid fa-table-cells-large"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <table class="data-table enq-table">
+        <thead>
+          <tr>
+            <th>CLIENT NAME</th>
+            <th>PROJECT / SERVICE</th>
+            <th>DATE LOGGED</th>
+            <th>LOCATION</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% enquiries.forEach(function(e) { %>
+            <tr class="<%= selected.id === e.id ? 'selected' : '' %>" onclick="window.location='/admin/enquiries?id=<%= e.id %>'">
+              <td>
+                <div class="client-name"><%= e.name %></div>
+                <div class="client-email"><%= e.email %></div>
+              </td>
+              <td>
+                <div class="service-name"><%= e.service %></div>
+                <div class="service-scope"><%= e.scope %></div>
+              </td>
+              <td><span class="date-text"><%= e.date %></span></td>
+              <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> <%= e.location %></span></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+
+      <div class="enq-table-footer">
+        <div class="enq-showing">
+          <span>Showing 1–6 of 28 enquiries</span>
+          <span class="enq-showing-sep">•</span>
+          <strong>ARCHIVAL BATCH #2026–Q3</strong>
+        </div>
+        <div class="enq-pagination">
+          <button class="enq-page-btn" type="button" disabled>Prev</button>
+          <button class="enq-page-btn active" type="button">1</button>
+          <button class="enq-page-btn" type="button">2</button>
+          <button class="enq-page-btn" type="button">3</button>
+          <button class="enq-page-btn" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="enq-detail">
+    <div class="enq-detail-head">
+      <span class="enq-ref"><span class="enq-ref-dot"></span><%= selected.ref %></span>
+      <span class="enq-status-badge"><%= selected.status %></span>
+    </div>
+
+    <div class="enq-detail-body">
+      <div class="enq-section-label">CLIENT &amp; ORGANIZATION</div>
+      <div class="enq-client-name"><%= selected.name %></div>
+      <div class="enq-client-org"><%= selected.org %></div>
+
+      <div class="enq-facts">
+        <div class="enq-fact">
+          <div class="enq-fact-label">TYPOLOGY</div>
+          <div class="enq-fact-value"><%= selected.typology %></div>
+        </div>
+        <div class="enq-fact">
+          <div class="enq-fact-label">FOOTPRINT</div>
+          <div class="enq-fact-value"><%= selected.footprint %></div>
+        </div>
+        <div class="enq-fact enq-fact-wide">
+          <div class="enq-fact-label">BUDGET ESTIMATE</div>
+          <div class="enq-fact-budget"><%= selected.budget %></div>
+        </div>
+      </div>
+
+      <div class="enq-section-label">SITE CONSTRAINTS &amp; BRIEF</div>
+      <div class="enq-brief">"<%= selected.brief %>"</div>
+
+      <div class="enq-section-label">COMMUNICATION CHANNELS</div>
+      <ul class="enq-channels">
+        <li><i class="fa-regular fa-envelope"></i><span><%= selected.email %></span></li>
+        <li><i class="fa-solid fa-phone"></i><span><%= selected.phone %></span></li>
+        <li><i class="fa-solid fa-location-dot"></i><span><%= selected.address %></span></li>
+      </ul>
+
+      <div class="enq-assignee">
+        <div class="enq-assignee-info">
+          <span class="enq-assignee-avatar"><%= selected.assignee.initials %></span>
+          <div>
+            <div class="enq-assignee-name"><%= selected.assignee.name %></div>
+            <div class="enq-assignee-role"><%= selected.assignee.role %></div>
+          </div>
+        </div>
+        <button class="enq-assign-btn" type="button">ASSIGN</button>
+      </div>
+
+      <button class="enq-survey-btn" type="button"><i class="fa-solid fa-arrow-up"></i> INITIATE SITE SURVEY</button>
+      <div class="enq-action-row">
+        <button class="enq-action-btn" type="button">Mark Discussion</button>
+        <button class="enq-action-btn danger" type="button">Decline / Archive</button>
+      </div>
+    </div>
+
+    <div class="enq-detail-foot">
+      <span><strong>LOGGED:</strong> <%= selected.logged %></span>
+      <span><strong>IP:</strong> <%= selected.ip %></span>
+    </div>
+  </aside>
 </div>
