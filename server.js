@@ -4,13 +4,9 @@ const session = require('express-session');
 const expressLayouts = require('express-ejs-layouts');
 const cors = require('cors');
 const path = require('path');
-const connectDB = require('./config/db');
 
 const app = express();
-const PORT = process.env.PORT || 3005;
-
-// Connect MongoDB
-connectDB();
+const PORT = process.env.PORT || 3006;
 
 // CORS for frontend
 app.use(cors({
@@ -34,10 +30,6 @@ app.use(session({
   cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-// API routes
-const apiRoutes = require('./routes/api');
-app.use('/api', apiRoutes);
-
 // Admin EJS routes
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -53,5 +45,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Outset Studio Backend running on http://localhost:${PORT}`);
+  console.log(`Outset Studio Admin running on http://localhost:${PORT}`);
 });
