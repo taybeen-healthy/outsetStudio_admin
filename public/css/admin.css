@@ -195,13 +195,18 @@ body {
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
+  gap: 20px;
   font-size: 13px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   color: var(--text-dark);
   cursor: pointer;
-  line-height: 1;
+  line-height: 1.2;
   white-space: nowrap;
+}
+
+.remember-label span:last-child {
+  position: relative;
+  top: 2px;
 }
 
 .hidden-cb {
@@ -224,6 +229,8 @@ body {
   flex-shrink: 0;
   position: relative;
   box-sizing: border-box;
+  vertical-align: middle;
+  top: 1px;
 }
 
 .remember-label .custom-check::after {
