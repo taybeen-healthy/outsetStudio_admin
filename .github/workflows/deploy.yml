@@ -45,7 +45,7 @@ jobs:
             echo "PORT=3005" > .env
             echo "SESSION_SECRET=outsetstudio_admin_secret_key_2024" >> .env
             echo "ADMIN_EMAIL=admin@outsetstudio.in" >> .env
-            echo "ADMIN_PASSWORD=admin123" >> .env
+            echo "ADMIN_PASSWORD=Admin@12345" >> .env
             echo "FRONTEND_URL=https://outsetstudio.in" >> .env
             echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
             
