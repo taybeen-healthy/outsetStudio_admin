@@ -4,29 +4,29 @@
       <span class="logo-outset">OUTSET</span><span class="logo-studio">STUDIO</span>
     </div>
     <nav class="sidebar-nav">
-      <a href="/admin/dashboard" class="nav-item <%= activePage === 'dashboard' ? 'active' : '' %>">
+      <a href="/admin/dashboard" class="nav-item <%= (typeof activePage !== 'undefined' && activePage === 'dashboard') ? 'active' : '' %>">
         <i class="fa-solid fa-grip"></i>
         <span>Dashboard</span>
       </a>
-      <a href="/admin/projects" class="nav-item <%= activePage === 'projects' ? 'active' : '' %>">
+      <a href="/admin/projects" class="nav-item <%= (typeof activePage !== 'undefined' && activePage === 'projects') ? 'active' : '' %>">
         <i class="fa-solid fa-building"></i>
         <span>Projects</span>
         <span class="nav-count">28</span>
       </a>
-      <a href="/admin/reviews" class="nav-item <%= activePage === 'reviews' ? 'active' : '' %>">
+      <a href="/admin/reviews" class="nav-item <%= (typeof activePage !== 'undefined' && activePage === 'reviews') ? 'active' : '' %>">
         <i class="fa-regular fa-comment-dots"></i>
         <span>Reviews</span>
       </a>
-      <a href="/admin/enquiries" class="nav-item <%= activePage === 'enquiries' ? 'active' : '' %>">
+      <a href="/admin/enquiries" class="nav-item <%= (typeof activePage !== 'undefined' && activePage === 'enquiries') ? 'active' : '' %>">
         <i class="fa-regular fa-envelope"></i>
         <span>Enquiries</span>
         <span class="nav-count">04</span>
       </a>
-      <a href="/admin/vendors" class="nav-item <%= activePage === 'vendors' ? 'active' : '' %>">
+      <a href="/admin/vendors" class="nav-item <%= (typeof activePage !== 'undefined' && activePage === 'vendors') ? 'active' : '' %>">
         <i class="fa-solid fa-people-group"></i>
         <span>Vendor Registrations</span>
       </a>
-      <a href="/admin/settings" class="nav-item <%= activePage === 'settings' ? 'active' : '' %>">
+      <a href="/admin/settings" class="nav-item <%= (typeof activePage !== 'undefined' && activePage === 'settings') ? 'active' : '' %>">
         <i class="fa-solid fa-sliders"></i>
         <span>Settings</span>
       </a>
@@ -34,10 +34,10 @@
   </div>
   <div class="sidebar-bottom">
     <div class="sidebar-user">
-      <div class="user-avatar"><%= user.initials %></div>
+      <div class="user-avatar"><%= (typeof user !== 'undefined' && user) ? user.initials : 'AD' %></div>
       <div class="user-info">
-        <div class="user-name"><%= user.name %></div>
-        <div class="user-role"><%= user.role %>, <%= user.location %></div>
+        <div class="user-name"><%= (typeof user !== 'undefined' && user) ? user.name : 'Admin' %></div>
+        <div class="user-role"><%= (typeof user !== 'undefined' && user && user.role) ? user.role : 'Administrator' %><%= (typeof user !== 'undefined' && user && user.location) ? ', ' + user.location : '' %></div>
       </div>
     </div>
     <a href="/logout" class="signout-btn">
