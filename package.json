@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "seed": "node seed.js"
   },
   "repository": {
     "type": "git",
@@ -16,11 +17,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^18.0.2",
     "ejs": "^6.0.1",
     "express": "^5.2.1",
     "express-ejs-layouts": "^2.5.1",
-    "express-session": "^1.19.0"
+    "express-session": "^1.19.0",
+    "mongoose": "^9.10.2"
   }
 }

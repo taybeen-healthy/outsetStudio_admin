@@ -8,6 +8,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3006;
 
+const connectDB = require('./config/db');
+connectDB();
+
 // CORS for frontend
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
