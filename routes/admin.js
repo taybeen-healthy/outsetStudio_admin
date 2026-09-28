@@ -134,13 +134,6 @@ router.get('/projects', async (req, res) => {
 
 const PROJECT_STATUSES = ['Lead', 'Confirmed', 'In Progress', 'Completed'];
 
-router.get('/projects/new', (req, res) => {
-  res.render('admin/project-form', {
-    user: req.session.adminUser, activePage: 'projects',
-    project: null, statuses: PROJECT_STATUSES,
-  });
-});
-
 router.get('/projects/:id/edit', async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -152,32 +145,6 @@ router.get('/projects/:id/edit', async (req, res) => {
   } catch (err) {
     res.redirect('/admin/projects');
   }
-});
-
-router.post('/projects', async (req, res) => {
-  try {
-    const { title, code, client, location, scale, status, progress, fees, feeStatus, subtitle } = req.body;
-    if (!title || !title.trim()) throw new Error('title required');
-    const slug = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    await Project.create({
-      title: title.trim(),
-      slug: slug + '-' + Date.now().toString(36),
-      code: code || '',
-      client: client || '',
-      location: location || '',
-      scale: scale || '',
-      status: PROJECT_STATUSES.includes(status) ? status : 'Lead',
-      progress: Math.min(100, Math.max(0, Number(progress) || 0)),
-      fees: Number(String(fees || '').replace(/[^0-9]/g, '')) || 0,
-      feeStatus: feeStatus || '',
-      subtitle: subtitle || '',
-    });
-    req.session.flash = { title: 'Project Created', msg: 'New project added to the studio pipeline.' };
-  } catch (err) {
-    console.error('Project create error:', err.message);
-    req.session.flash = { title: 'Create Failed', msg: 'Could not create project. Name is required.' };
-  }
-  res.redirect('/admin/projects');
 });
 
 router.post('/projects/:id', async (req, res) => {
@@ -427,7 +394,8 @@ const VEN_STATUS = { new: 'NEW', verification: 'UNDER SCRUTINY', approved: 'APPR
 
 router.get('/vendors', async (req, res) => {
   try {
-    const activeTab = (req.query.status && VEN_STATUS[req.query.status]) || (req.query.status === 'all' ? 'all' : 'all');
+    const statusKey = req.query.status;
+    const activeTab = (statusKey && (VEN_STATUS[statusKey] || statusKey === 'all')) ? statusKey : 'all';
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const perPage = 6;
     const q = (req.query.q || '').trim();

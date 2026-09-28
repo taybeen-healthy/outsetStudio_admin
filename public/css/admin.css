@@ -3760,3 +3760,25 @@ a.vr-page-arrow,
 a.enq-page-btn {
   text-decoration: none;
 }
+
+.review-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+
+.review-status-chip.approved {
+  border-color: #2e7d4f;
+  color: #2e7d4f;
+}
+
+.review-status-chip.declined {
+  border-color: #b3402a;
+  color: #b3402a;
+}

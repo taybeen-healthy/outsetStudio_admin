@@ -72,14 +72,20 @@
           </td>
           <td class="td-actions">
             <div class="action-buttons">
-              <form method="POST" action="/admin/reviews/<%= r.id %>/status">
-                <input type="hidden" name="status" value="approved">
-                <button type="submit" class="approve-btn">APPROVE</button>
-              </form>
-              <form method="POST" action="/admin/reviews/<%= r.id %>/status">
-                <input type="hidden" name="status" value="declined">
-                <button type="submit" class="decline-btn">DECLINE</button>
-              </form>
+              <% if (r.status === 'pending') { %>
+                <form method="POST" action="/admin/reviews/<%= r.id %>/status">
+                  <input type="hidden" name="status" value="approved">
+                  <button type="submit" class="approve-btn">APPROVE</button>
+                </form>
+                <form method="POST" action="/admin/reviews/<%= r.id %>/status">
+                  <input type="hidden" name="status" value="declined">
+                  <button type="submit" class="decline-btn">DECLINE</button>
+                </form>
+              <% } else if (r.status === 'approved') { %>
+                <span class="review-status-chip approved"><i class="fa-solid fa-circle-check"></i> APPROVED</span>
+              <% } else { %>
+                <span class="review-status-chip declined"><i class="fa-solid fa-circle-xmark"></i> DECLINED</span>
+              <% } %>
             </div>
           </td>
         </tr>

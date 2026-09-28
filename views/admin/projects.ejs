@@ -1,12 +1,7 @@
 <div class="page-header projects-header">
-  <div class="page-header-top">
-    <div class="page-header-text" style="width:100%;">
-      <div class="page-breadcrumb breadcrumb-orange"><span class="bc-square"></span> STUDIO PROJECT</div>
-      <h1 class="page-title">Projects</h1>
-      <p class="page-desc projects-desc">Manage active architectural briefs, site surveys, turnkey execution tranches, vendor disbursements, and archival sign-offs across Indian metropolitan practices.</p>
-    </div>
-    <a href="/admin/projects/new" class="save-btn save-btn-header" style="text-decoration:none; white-space:nowrap;"><i class="fa-solid fa-plus"></i> New Project</a>
-  </div>
+  <div class="page-breadcrumb breadcrumb-orange"><span class="bc-square"></span> STUDIO PROJECT</div>
+  <h1 class="page-title">Projects</h1>
+  <p class="page-desc projects-desc">Manage active architectural briefs, site surveys, turnkey execution tranches, vendor disbursements, and archival sign-offs across Indian metropolitan practices.</p>
 </div>
 
 <div class="table-container projects-table-wrap">
@@ -22,7 +17,7 @@
     </thead>
     <tbody>
       <% if (projects.length === 0) { %>
-        <tr><td colspan="5" style="padding:28px;text-align:center;color:#999;">No projects yet. Click "New Project" to add one.</td></tr>
+        <tr><td colspan="5" style="padding:28px;text-align:center;color:#999;">No projects found.</td></tr>
       <% } %>
       <% projects.forEach(function(p) { %>
         <tr>
