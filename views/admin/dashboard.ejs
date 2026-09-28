@@ -6,7 +6,7 @@
   </div>
   <div class="page-date-card">
     <span class="date-dot"></span>
-    STUDIO ACTIVE <span class="date-sep">•</span> <%= user.location.toUpperCase() %> <span class="date-sep">•</span> <span id="currentDate"></span>
+    STUDIO ACTIVE <span class="date-sep">•</span> <%= (user && user.location) ? user.location.toUpperCase() : 'DELHI HQ' %> <span class="date-sep">•</span> <span id="currentDate"></span>
   </div>
 </div>
 

@@ -12,7 +12,7 @@ router.post('/login', (req, res) => {
   const { email, password } = req.body;
   if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
     req.session.isAdmin = true;
-    req.session.adminUser = { name: 'Admin', email, initials: 'AD' };
+    req.session.adminUser = { name: 'Admin', email, initials: 'AD', role: 'Administrator', location: 'Delhi HQ' };
     return res.redirect('/admin/dashboard');
   }
   res.render('login', { error: 'Invalid email or password', layout: 'login-layout' });
