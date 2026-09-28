@@ -14,20 +14,21 @@
   <div class="vr-toolbar">
     <div class="vr-tabs">
       <% tabs.forEach(function(t) { %>
-        <button class="vr-tab <%= t.active ? 'active' : '' %>" data-tab="<%= t.id %>">
+        <a href="/admin/vendors?status=<%= t.id %><%= q ? '&q=' + encodeURIComponent(q) : '' %>" class="vr-tab <%= t.active ? 'active' : '' %>">
           <% if (t.badge) { %>
             <%= t.label %>
             <span class="vr-tab-badge"><%= t.count %></span>
           <% } else { %>
             <%= t.label %> (<%= t.count %>)
           <% } %>
-        </button>
+        </a>
       <% }); %>
     </div>
-    <div class="vr-loc-search">
+    <form class="vr-loc-search" method="GET" action="/admin/vendors">
+      <input type="hidden" name="status" value="<%= activeTab %>">
       <i class="fa-solid fa-magnifying-glass"></i>
-      <input type="text" placeholder="location...">
-    </div>
+      <input type="text" name="q" value="<%= q || '' %>" placeholder="location...">
+    </form>
   </div>
 
   <table class="vr-table">
@@ -42,6 +43,9 @@
       </tr>
     </thead>
     <tbody>
+      <% if (vendors.length === 0) { %>
+        <tr><td colspan="6" style="padding:28px;text-align:center;color:#999;">No vendors found<%= q ? ' for "' + q + '"' : '' %>.</td></tr>
+      <% } %>
       <% vendors.forEach(function(v) { %>
         <tr>
           <td>
@@ -71,11 +75,20 @@
   <div class="vr-table-footer">
     <span class="vr-showing">Showing <%= showingFrom %>–<%= showingTo %> of <%= totalRegistrations %> registrations</span>
     <div class="vr-pagination">
-      <button class="vr-page-arrow" disabled>&lt;</button>
-      <% for (let p = 1; p <= totalPages; p++) { %>
-        <button class="vr-page <%= p === currentPage ? 'active' : '' %>"><%= p %></button>
+      <% const vBase = 'status=' + activeTab + (q ? '&q=' + encodeURIComponent(q) : ''); %>
+      <% if (page > 1) { %>
+        <a class="vr-page-arrow" href="/admin/vendors?<%= vBase %>&page=<%= page - 1 %>">&lt;</a>
+      <% } else { %>
+        <button class="vr-page-arrow" disabled>&lt;</button>
       <% } %>
-      <button class="vr-page-arrow">&gt;</button>
+      <% for (let p = 1; p <= totalPages; p++) { %>
+        <a class="vr-page <%= p === currentPage ? 'active' : '' %>" href="/admin/vendors?<%= vBase %>&page=<%= p %>"><%= p %></a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="vr-page-arrow" href="/admin/vendors?<%= vBase %>&page=<%= page + 1 %>">&gt;</a>
+      <% } else { %>
+        <button class="vr-page-arrow" disabled>&gt;</button>
+      <% } %>
     </div>
   </div>
 </div>
@@ -187,15 +200,20 @@
           <p class="vr-checklist-desc">Studio compliance and archival clearance steps before active project assignment.</p>
 
           <div class="vr-checklist">
-            <% v.checklist.forEach(function(item) { %>
-              <label class="vr-check-item <%= item.checked ? 'checked' : '' %>">
-                <input type="checkbox" class="vr-check-input" <%= item.checked ? 'checked' : '' %>>
-                <span class="vr-check-box"></span>
-                <span class="vr-check-text">
-                  <span class="vr-check-title"><%= item.title %></span>
-                  <span class="vr-check-sub"><%= item.desc %></span>
-                </span>
-              </label>
+            <% v.checklist.forEach(function(item, ci) { %>
+              <form action="/admin/vendors/<%= v.docId %>/checklist" method="POST" class="vr-check-form">
+                <input type="hidden" name="index" value="<%= ci %>">
+                <input type="hidden" name="tab" value="<%= activeTab %>">
+                <input type="hidden" name="q" value="<%= q || '' %>">
+                <label class="vr-check-item <%= item.checked ? 'checked' : '' %>">
+                  <input type="checkbox" class="vr-check-input" name="checked" <%= item.checked ? 'checked' : '' %> onchange="this.form.submit()">
+                  <span class="vr-check-box"></span>
+                  <span class="vr-check-text">
+                    <span class="vr-check-title"><%= item.title %></span>
+                    <span class="vr-check-sub"><%= item.desc %></span>
+                  </span>
+                </label>
+              </form>
             <% }); %>
           </div>
 
@@ -215,18 +233,25 @@
 
           <div class="vr-remarks-block">
             <div class="vr-remarks-label">CURATOR REMARKS / AUDIT NOTES</div>
-            <textarea class="vr-remarks-input" rows="4"><%= v.remarks %></textarea>
+            <form action="/admin/vendors/<%= v.docId %>/remarks" method="POST">
+              <input type="hidden" name="tab" value="<%= activeTab %>">
+              <input type="hidden" name="q" value="<%= q || '' %>">
+              <textarea class="vr-remarks-input" name="remarks" rows="4" onchange="this.form.submit()"><%= v.remarks %></textarea>
+            </form>
           </div>
         </div>
       </div>
     </div>
 
     <div class="vr-modal-footer">
-      <button class="vr-btn-request">REQUEST ADDITIONAL SAMPLES / AUDIT</button>
-      <div class="vr-modal-footer-right">
-        <button class="vr-btn-decline">DECLINE REGISTRATION</button>
-        <button class="vr-btn-approve"><i class="fa-solid fa-circle-check"></i> APPROVE &amp; ONBOARD TO VENDOR GUILD</button>
-      </div>
+      <form action="/admin/vendors/<%= v.docId %>/status" method="POST" style="display:contents;">
+        <input type="hidden" name="tab" value="<%= activeTab %>">
+        <button class="vr-btn-request" type="submit" name="status" value="UNDER SCRUTINY">REQUEST ADDITIONAL SAMPLES / AUDIT</button>
+        <div class="vr-modal-footer-right">
+          <button class="vr-btn-decline" type="submit" name="status" value="ARCHIVED">DECLINE REGISTRATION</button>
+          <button class="vr-btn-approve" type="submit" name="status" value="APPROVED"><i class="fa-solid fa-circle-check"></i> APPROVE &amp; ONBOARD TO VENDOR GUILD</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

@@ -1,5 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const Admin = require('../models/Admin');
+const Contact = require('../models/Contact');
+const Vendor = require('../models/Vendor');
+const Testimonial = require('../models/Testimonial');
+const Project = require('../models/Project');
+
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '');
+const fmtLogged = (d) => {
+  if (!d) return '';
+  const dt = new Date(d);
+  const date = `${String(dt.getDate()).padStart(2, '0')} ${dt.toLocaleString('en-US', { month: 'short' }).toUpperCase()} ${dt.getFullYear()}`;
+  const time = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${date}, ${time} IST`;
+};
+
+const inr = (n) => '₹' + Number(n || 0).toLocaleString('en-IN');
+const fmtINR = (n) => {
+  n = Number(n) || 0;
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)} Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)} Lakh`;
+  return inr(n);
+};
+const STATUS_CLASS = { 'In Progress': 'inprogress', 'Confirmed': 'confirmed', 'Completed': 'completed', 'Lead': 'lead' };
 
 function requireAuth(req, res, next) {
   if (!req.session.isAdmin) return res.redirect('/login');
@@ -8,25 +31,39 @@ function requireAuth(req, res, next) {
 
 router.use(requireAuth);
 
-router.get('/dashboard', (req, res) => {
-  const stats = {
-    totalProjects: 28,
-    totalProjectsLabel: 'Across Delhi, Mumbai & Bengaluru',
-    totalProjectsHighlight: 'Active Valuation',
-    totalProjectsValue: '₹4.8 Cr',
-    newEnquiries: 4,
-    newEnquiriesLabel: 'Awaiting review & initial consultation',
-    newEnquiriesHighlight: 'Response Target',
-    newEnquiriesValue: '< 24 Hours',
-    pendingReviews: 3,
-    pendingReviewsLabel: 'Submitted by clients',
-    pendingReviewsHighlight: 'Average Rating',
-    pendingReviewsValue: '4.9 / 5.0',
-    vendorRegistrations: 5,
-    vendorRegistrationsLabel: 'New material applications',
-    vendorRegistrationsHighlight: 'Category Focus',
-    vendorRegistrationsValue: 'Joinery & Stone'
-  };
+router.get('/dashboard', async (req, res) => {
+  try {
+    const [totalProjects, newEnquiries, pendingReviews, newVendors, totalVendors, feeAgg, ratingAgg] = await Promise.all([
+      Project.countDocuments(),
+      Contact.countDocuments({ status: 'NEW' }),
+      Testimonial.countDocuments({ status: 'pending' }),
+      Vendor.countDocuments({ status: 'NEW' }),
+      Vendor.countDocuments({ status: { $ne: 'ARCHIVED' } }),
+      Project.aggregate([{ $group: { _id: null, total: { $sum: '$fees' } } }]),
+      Testimonial.aggregate([{ $match: { status: 'approved' } }, { $group: { _id: null, avg: { $avg: '$rating' } } }]),
+    ]);
+
+    const totalFees = feeAgg[0] ? feeAgg[0].total : 0;
+    const avgRating = ratingAgg[0] ? ratingAgg[0].avg : 5;
+
+    const stats = {
+      totalProjects,
+      totalProjectsLabel: 'Across Delhi, Mumbai & Bengaluru',
+      totalProjectsHighlight: 'Active Valuation',
+      totalProjectsValue: totalFees > 0 ? fmtINR(totalFees) : '₹0',
+      newEnquiries,
+      newEnquiriesLabel: 'Awaiting review & initial consultation',
+      newEnquiriesHighlight: 'Response Target',
+      newEnquiriesValue: '< 24 Hours',
+      pendingReviews,
+      pendingReviewsLabel: 'Submitted by clients',
+      pendingReviewsHighlight: 'Average Rating',
+      pendingReviewsValue: `${avgRating.toFixed(1)} / 5.0`,
+      vendorRegistrations: newVendors,
+      vendorRegistrationsLabel: 'New material applications',
+      vendorRegistrationsHighlight: 'Active Vendors',
+      vendorRegistrationsValue: `${totalVendors} On Record`,
+    };
 
   const chart = {
     maxY: 12,
@@ -50,80 +87,190 @@ router.get('/dashboard', (req, res) => {
   };
 
   res.render('admin/dashboard', { user: req.session.adminUser, stats, chart, activePage: 'dashboard' });
-});
-
-router.get('/projects', (req, res) => {
-  const projects = [
-    { name: 'Rae Hotel Delhi', code: '#OS-DEL-01', client: 'ABC Hospitality', location: 'Civil Lines, Delhi', scale: '6,500 sq.ft', status: 'In Progress', statusClass: 'inprogress', progress: 40, fees: '₹6,00,000', feeStatus: 'DUE SOON', feeClass: 'due' },
-    { name: 'Nova Café Mumbai', code: '#OS-BOM-08', client: 'Mehta F&B Group', location: 'Bandra West, Mumbai', scale: '2,100 sq.ft', status: 'In Progress', statusClass: 'inprogress', progress: 70, fees: '₹4,50,000', feeStatus: 'PAID FULL', feeClass: 'paid' },
-    { name: 'Urban Retail Gallery', code: '#OS-BLR-14', client: 'Urban Living Co.', location: 'Indiranagar, BLR', scale: '3,400 sq.ft', status: 'Confirmed', statusClass: 'confirmed', progress: 15, fees: '₹3,00,000', feeStatus: 'DUE RETAINER', feeClass: 'due' },
-    { name: 'The Work Loft Gurgaon', code: '#OS-DEL-04', client: 'Apex Studio Spaces', location: 'CyberHub, Gurgaon', scale: '8,200 sq.ft', status: 'In Progress', statusClass: 'inprogress', progress: 85, fees: '₹5,00,000', feeStatus: 'DUE TRANCHE', feeClass: 'due' },
-    { name: 'Artisanal Store Jaipur', code: '#OS-JAI-02', client: 'Kala Craft Collective', location: 'C-Scheme, Jaipur', scale: '1,800 sq.ft', status: 'In Progress', statusClass: 'inprogress', progress: 35, fees: '₹3,50,000', feeStatus: 'PAID RETAINER', feeClass: 'paid' },
-    { name: 'Komorebi Villa Alibaug', code: '#OS-ALI-01', client: 'Nair Heritage Living', location: 'Alibaug Coastal, MH', scale: '5,200 sq.ft', status: 'Completed', statusClass: 'completed', progress: 100, fees: '₹14,00,000', feeStatus: 'SETTLED', feeClass: 'paid' },
-    { name: 'Studio Atelier Chandigarh', code: '#OS-IXC-03', client: 'Tricity Media Lab', location: 'Sector 8, Chandigarh', scale: '3,100 sq.ft', status: 'In Progress', statusClass: 'inprogress', progress: 60, fees: '₹2,80,000', feeStatus: 'DUE IN 4 DAYS', feeClass: 'due' },
-    { name: 'Saffron Terrace Bangalore', code: '#OS-BLR-21', client: 'Deccan Bistro Ltd', location: 'Lavelle Road, BLR', scale: '4,000 sq.ft', status: 'Confirmed', statusClass: 'confirmed', progress: 10, fees: '₹4,00,000', feeStatus: 'DUE RETAINER', feeClass: 'due' }
-  ];
-  res.render('admin/projects', { user: req.session.adminUser, projects, activePage: 'projects' });
-});
-
-const reviews = [
-  {
-    id: 1, initials: 'RM', avatar: 'sage',
-    name: 'Rohan Malhotra', company: 'ABC Hospitality',
-    project: 'Rae Hotel Delhi', typology: 'Boutique Hotel • Delhi',
-    text: 'Outset Studio transformed our boutique hotel into a timeless brutalist sanctuary. The balance of raw concrete and warm teak wood exceeded our board\'s expectations.',
-    date: '24 Sep 2026', status: 'pending'
-  },
-  {
-    id: 2, initials: 'PN', avatar: 'blush',
-    name: 'Priya Nair', company: 'Nair Heritage Living',
-    project: 'Komorebi Villa', typology: 'Alibaug Coastal • Residential',
-    text: 'Exceptional attention to natural light and local sandstone. The team respected our tight handover schedule while delivering uncompromised detailing.',
-    date: '22 Sep 2026', status: 'pending'
-  },
-  {
-    id: 3, initials: 'VS', avatar: 'stone',
-    name: 'Vikram Singhania', company: 'Apex Studio Spaces',
-    project: 'The Work Loft', typology: 'Gurgaon Workspace • Commercial',
-    text: 'A masterclass in acoustic privacy and refined executive interiors. Our tenants constantly compliment the materiality.',
-    date: '18 Sep 2026', status: 'pending'
-  },
-  {
-    id: 4, initials: 'TS', avatar: 'blush',
-    name: 'Tanya Sharma', company: 'Kala Craft Collective',
-    project: 'Artisanal Store', typology: 'Jaipur Flagship • Retail Monograph',
-    text: 'Quiet luxury at its finest. They understood our brand heritage deeply and translated it into retail architecture.',
-    date: '12 Sep 2026', status: 'approved'
-  },
-  {
-    id: 5, initials: 'KM', avatar: 'sage',
-    name: 'Karan Mehta', company: 'Mehta F&B Group',
-    project: 'Nova Café', typology: 'Mumbai Coastal • Hospitality',
-    text: 'Flawless spatial flow and kitchen ergonomics. Highly recommended for commercial culinary spaces.',
-    date: '05 Sep 2026', status: 'approved'
+  } catch (err) {
+    console.error('Dashboard error:', err.message);
+    res.status(500).render('admin/dashboard', {
+      user: req.session.adminUser,
+      activePage: 'dashboard',
+      stats: {
+        totalProjects: 0, totalProjectsLabel: '—', totalProjectsHighlight: '—', totalProjectsValue: '₹0',
+        newEnquiries: 0, newEnquiriesLabel: '—', newEnquiriesHighlight: '—', newEnquiriesValue: '—',
+        pendingReviews: 0, pendingReviewsLabel: '—', pendingReviewsHighlight: '—', pendingReviewsValue: '—',
+        vendorRegistrations: 0, vendorRegistrationsLabel: '—', vendorRegistrationsHighlight: '—', vendorRegistrationsValue: '—',
+      },
+      chart: { maxY: 12, totalYtd: 0, avgMonthly: '0 / Month', onTimeRate: '—', months: [] },
+    });
   }
-];
+});
 
-router.get('/reviews', (req, res) => {
-  const counts = {
-    all: reviews.length,
-    pending: reviews.filter(r => r.status === 'pending').length,
-    approved: reviews.filter(r => r.status === 'approved').length,
-    declined: reviews.filter(r => r.status === 'declined').length
-  };
+router.get('/projects', async (req, res) => {
+  try {
+    const docs = await Project.find().sort({ createdAt: -1 });
+    const projects = docs.map((c) => {
+      const o = c.toObject();
+      const feeStatus = o.feeStatus || '—';
+      return {
+        ...o,
+        id: o._id.toString(),
+        name: o.title,
+        code: o.code || '—',
+        client: o.client || '—',
+        location: o.location || '—',
+        scale: o.scale || '—',
+        status: o.status || 'Lead',
+        statusClass: STATUS_CLASS[o.status] || 'lead',
+        progress: Number(o.progress) || 0,
+        fees: inr(o.fees),
+        feeStatus,
+        feeClass: /PAID|SETTLED/i.test(String(o.feeStatus || '')) ? 'paid' : 'due',
+      };
+    });
+    res.render('admin/projects', { user: req.session.adminUser, projects, activePage: 'projects' });
+  } catch (err) {
+    console.error('Projects error:', err.message);
+    res.status(500).render('admin/projects', { user: req.session.adminUser, projects: [], activePage: 'projects' });
+  }
+});
 
-  const toastMessages = {
-    approved: 'Review approved. Eligible to appear on public website.',
-    declined: 'Review declined. It will not appear on the public website.'
-  };
+const PROJECT_STATUSES = ['Lead', 'Confirmed', 'In Progress', 'Completed'];
 
-  const toastKey = req.query.toast;
-  const toast = {
-    title: 'Status Updated',
-    msg: toastMessages[toastKey] || toastMessages.approved
-  };
+router.get('/projects/new', (req, res) => {
+  res.render('admin/project-form', {
+    user: req.session.adminUser, activePage: 'projects',
+    project: null, statuses: PROJECT_STATUSES,
+  });
+});
 
-  res.render('admin/reviews', { user: req.session.adminUser, reviews, counts, toast, activePage: 'reviews' });
+router.get('/projects/:id/edit', async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.redirect('/admin/projects');
+    res.render('admin/project-form', {
+      user: req.session.adminUser, activePage: 'projects',
+      project, statuses: PROJECT_STATUSES,
+    });
+  } catch (err) {
+    res.redirect('/admin/projects');
+  }
+});
+
+router.post('/projects', async (req, res) => {
+  try {
+    const { title, code, client, location, scale, status, progress, fees, feeStatus, subtitle } = req.body;
+    if (!title || !title.trim()) throw new Error('title required');
+    const slug = title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    await Project.create({
+      title: title.trim(),
+      slug: slug + '-' + Date.now().toString(36),
+      code: code || '',
+      client: client || '',
+      location: location || '',
+      scale: scale || '',
+      status: PROJECT_STATUSES.includes(status) ? status : 'Lead',
+      progress: Math.min(100, Math.max(0, Number(progress) || 0)),
+      fees: Number(String(fees || '').replace(/[^0-9]/g, '')) || 0,
+      feeStatus: feeStatus || '',
+      subtitle: subtitle || '',
+    });
+    req.session.flash = { title: 'Project Created', msg: 'New project added to the studio pipeline.' };
+  } catch (err) {
+    console.error('Project create error:', err.message);
+    req.session.flash = { title: 'Create Failed', msg: 'Could not create project. Name is required.' };
+  }
+  res.redirect('/admin/projects');
+});
+
+router.post('/projects/:id', async (req, res) => {
+  try {
+    const { title, code, client, location, scale, status, progress, fees, feeStatus, subtitle } = req.body;
+    const project = await Project.findById(req.params.id);
+    if (!project) throw new Error('not found');
+    if (title && title.trim()) project.title = title.trim();
+    project.code = code || '';
+    project.client = client || '';
+    project.location = location || '';
+    project.scale = scale || '';
+    project.status = PROJECT_STATUSES.includes(status) ? status : project.status;
+    project.progress = Math.min(100, Math.max(0, Number(progress) || 0));
+    project.fees = Number(String(fees || '').replace(/[^0-9]/g, '')) || 0;
+    project.feeStatus = feeStatus || '';
+    project.subtitle = subtitle || '';
+    await project.save();
+    req.session.flash = { title: 'Project Updated', msg: 'Project details saved.' };
+  } catch (err) {
+    console.error('Project update error:', err.message);
+    req.session.flash = { title: 'Update Failed', msg: 'Could not update project.' };
+  }
+  res.redirect('/admin/projects');
+});
+
+router.post('/projects/:id/delete', async (req, res) => {
+  try {
+    await Project.deleteOne({ _id: req.params.id });
+    req.session.flash = { title: 'Project Deleted', msg: 'Project removed from the pipeline.' };
+  } catch (err) {
+    req.session.flash = { title: 'Delete Failed', msg: 'Could not delete project.' };
+  }
+  res.redirect('/admin/projects');
+});
+
+router.get('/reviews', async (req, res) => {
+  try {
+    const docs = await Testimonial.find().sort({ createdAt: -1 });
+    const avatars = ['sage', 'blush', 'stone'];
+    const reviews = docs.map((c, i) => {
+      const o = c.toObject();
+      const parts = (o.name || '').trim().split(/\s+/);
+      return {
+        ...o,
+        id: o._id.toString(),
+        text: o.quote || '',
+        date: fmtDate(c.createdAt),
+        initials: o.initials || ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'CL',
+        avatar: o.avatar || avatars[i % avatars.length],
+        status: o.status || 'pending',
+        project: o.project || '—',
+        typology: o.typology || '—',
+      };
+    });
+
+    const counts = {
+      all: reviews.length,
+      pending: reviews.filter(r => r.status === 'pending').length,
+      approved: reviews.filter(r => r.status === 'approved').length,
+      declined: reviews.filter(r => r.status === 'declined').length,
+    };
+
+    const toastMessages = {
+      approved: 'Review approved. Eligible to appear on public website.',
+      declined: 'Review declined. It will not appear on the public website.'
+    };
+
+    const toastKey = req.query.toast;
+    const toast = toastKey && toastMessages[toastKey] ? {
+      title: 'Status Updated',
+      msg: toastMessages[toastKey]
+    } : null;
+
+    res.render('admin/reviews', { user: req.session.adminUser, reviews, counts, toast, activePage: 'reviews' });
+  } catch (err) {
+    console.error('Reviews error:', err.message);
+    res.status(500).render('admin/reviews', {
+      user: req.session.adminUser, reviews: [],
+      counts: { all: 0, pending: 0, approved: 0, declined: 0 },
+      toast: null, activePage: 'reviews',
+    });
+  }
+});
+
+router.post('/reviews/:id/status', async (req, res) => {
+  const status = req.body.status === 'declined' ? 'declined' : 'approved';
+  try {
+    await Testimonial.updateOne({ _id: req.params.id }, { status, active: status === 'approved' });
+  } catch (err) {
+    console.error('Review status error:', err.message);
+  }
+  res.redirect(`/admin/reviews?toast=${status}`);
 });
 
 router.post('/reviews/:id/status', (req, res) => {
@@ -133,364 +280,364 @@ router.post('/reviews/:id/status', (req, res) => {
   res.redirect(`/admin/reviews?toast=${status}`);
 });
 
-router.get('/enquiries', (req, res) => {
-  const tabs = [
-    { key: 'all', label: 'ALL (28)' },
-    { key: 'new', label: 'NEW [3]' },
-    { key: 'discussion', label: 'IN DISCUSSION (12)' },
-    { key: 'confirmed', label: 'CONFIRMED (8)' },
-    { key: 'archived', label: 'ARCHIVED (5)' }
-  ];
+const ENQ_STATUS = { new: 'NEW', discussion: 'IN DISCUSSION', confirmed: 'CONFIRMED', archived: 'ARCHIVED' };
 
-  const enquiries = [
-    {
-      id: '9042', ref: '#ENG-9042', status: 'NEW',
-      name: 'Tanya Sharma', email: 'tanya.sharma@culturecraft.in',
-      org: 'CultureCraft Heritage Foundation • Jaipur Chapter',
-      service: 'Retail & Art Gallery', scope: 'Scope: 4,500 sq.ft turnkey',
-      date: '22 Sep 2026', location: 'Jaipur, Rajasthan',
-      typology: 'Retail & Art Gallery', footprint: '4,500 sq.ft', budget: '₹35,00,000',
-      brief: 'Protected 19th-century lime-plaster haveli pavilion. Requires specialized conservation-grade MEP conduits and indigenous red sandstone flooring.',
-      phone: '+91 98988 44855',
-      address: 'C-Scheme, Ashok Nagar, Jaipur, RJ 302001',
-      assignee: { initials: 'ER', name: 'Elena Rostova', role: 'Lead Spatial Curator' },
-      logged: '22 SEP 2026, 11:42 IST', ip: '14.139.24.81'
-    },
-    {
-      id: '9038', ref: '#ENG-9038', status: 'IN DISCUSSION',
-      name: 'Karan Mehta', email: 'karan@mehtahospitality.com',
-      org: 'Mehta Hospitality Group • Mumbai',
-      service: 'Café Interior Architecture', scope: 'Scope: Adaptive reuse, heritage building',
-      date: '19 Sep 2026', location: 'Bandra, Mumbai',
-      typology: 'Café Interior Architecture', footprint: '2,100 sq.ft', budget: '₹18,50,000',
-      brief: 'Colonial-era warehouse shell with original exposed rafters. Needs a full MEP refresh while retaining the weathered façade and teak trusses.',
-      phone: '+91 98200 11245',
-      address: 'Carter Road, Bandra West, Mumbai, MH 400050',
-      assignee: { initials: 'AM', name: 'Aditi Mehra', role: 'Principal Architect' },
-      logged: '19 SEP 2026, 09:15 IST', ip: '103.21.58.14'
-    },
-    {
-      id: '9031', ref: '#ENG-9031', status: 'CONFIRMED',
-      name: 'Ananya Sood', email: 'ananya.sood@indiatimes.com',
-      org: 'Sood Residences • Bengaluru',
-      service: 'Residential Penthouse', scope: 'Scope: Interior architecture + bespoke furniture',
-      date: '15 Sep 2026', location: 'Indiranagar, Bengaluru',
-      typology: 'Residential Penthouse', footprint: '3,800 sq.ft', budget: '₹28,00,000',
-      brief: 'Double-height penthouse shell with a north-facing terrace. Client requests integrated bespoke joinery in walnut and lime-washed walls throughout.',
-      phone: '+91 98450 77321',
-      address: '100 Ft Road, Indiranagar, Bengaluru, KA 560038',
-      assignee: { initials: 'DS', name: 'Devika Sharma', role: 'Interior Lead' },
-      logged: '15 SEP 2026, 16:40 IST', ip: '49.36.180.77'
-    },
-    {
-      id: '9027', ref: '#ENG-9027', status: 'CONFIRMED',
-      name: 'Raghav Singhania', email: 'raghav@singhaniagroup.in',
-      org: 'Singhania Group • Delhi',
-      service: 'Boutique Hotel Wing', scope: 'Scope: 12 keys, facade & spatial planning',
-      date: '11 Sep 2026', location: 'Civil Lines, Delhi',
-      typology: 'Boutique Hotel Wing', footprint: '6,500 sq.ft', budget: '₹52,00,000',
-      brief: '1930s bungalow conversion into a 12-key boutique wing. Conservation constraints apply to the lime-washed boundary walls and original jaali screens.',
-      phone: '+91 98110 22456',
-      address: 'Amsterdam House, Civil Lines, Delhi 110006',
-      assignee: { initials: 'ER', name: 'Elena Rostova', role: 'Lead Spatial Curator' },
-      logged: '11 SEP 2026, 12:05 IST', ip: '14.139.72.190'
-    },
-    {
-      id: '9019', ref: '#ENG-9019', status: 'ARCHIVED',
-      name: 'Priya Nair', email: 'priya@alibaugliving.in',
-      org: 'Alibaug Living Pvt. Ltd.',
-      service: 'Coastal Villa Retreat', scope: 'Scope: Architecture & landscape turnkey',
-      date: '04 Sep 2026', location: 'Alibaug, Maharashtra',
-      typology: 'Coastal Villa Retreat', footprint: '5,200 sq.ft', budget: '₹64,00,000',
-      brief: 'Monsoon-exposed coastal plot with mature palm cover. Requires raised plinth detailing, laterite retaining walls and a salt-tolerant landscape strategy.',
-      phone: '+91 98330 55678',
-      address: 'Kihim Beach Road, Alibaug, MH 402201',
-      assignee: { initials: 'NK', name: 'Nikhil Kulkarni', role: 'Landscape Director' },
-      logged: '04 SEP 2026, 10:22 IST', ip: '117.198.44.63'
-    },
-    {
-      id: '9008', ref: '#ENG-9008', status: 'NEW',
-      name: 'Devendra Rathore', email: 'devendra@rajasthanheritage.in',
-      org: 'Rajasthan Heritage Craft Trust',
-      service: 'Heritage Haveli Pavilion', scope: 'Scope: Courtyard restoration + stone carving',
-      date: '28 Aug 2026', location: 'Udaipur, Rajasthan',
-      typology: 'Heritage Haveli Pavilion', footprint: '7,400 sq.ft', budget: '₹41,00,000',
-      brief: 'Degraded courtyard pavilion with carved sandstone columns. Restoration must follow conservation-grade protocols and source matching Rajnagar stone.',
-      phone: '+91 94140 33129',
-      address: 'Gangaur Ghat Marg, Udaipur, RJ 313001',
-      assignee: { initials: 'SV', name: 'Sanjana Verma', role: 'Conservation Architect' },
-      logged: '28 AUG 2026, 15:48 IST', ip: '45.112.190.28'
+router.get('/enquiries', async (req, res) => {
+  try {
+    const activeTab = (req.query.status && (ENQ_STATUS[req.query.status] || req.query.status === 'all')) ? req.query.status : 'new';
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const perPage = 6;
+    const q = (req.query.q || '').trim();
+
+    const counts = {
+      all: await Contact.countDocuments(),
+      new: await Contact.countDocuments({ status: 'NEW' }),
+      discussion: await Contact.countDocuments({ status: 'IN DISCUSSION' }),
+      confirmed: await Contact.countDocuments({ status: 'CONFIRMED' }),
+      archived: await Contact.countDocuments({ status: 'ARCHIVED' }),
+    };
+
+    const tabs = [
+      { key: 'all', label: `ALL (${counts.all})` },
+      { key: 'new', label: `NEW [${counts.new}]` },
+      { key: 'discussion', label: `IN DISCUSSION (${counts.discussion})` },
+      { key: 'confirmed', label: `CONFIRMED (${counts.confirmed})` },
+      { key: 'archived', label: `ARCHIVED (${counts.archived})` },
+    ];
+
+    const filter = {};
+    if (ENQ_STATUS[activeTab]) filter.status = ENQ_STATUS[activeTab];
+    if (q) {
+      const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ name: rx }, { email: rx }, { location: rx }, { org: rx }];
     }
-  ];
 
-  const activeTab = req.query.status || 'new';
-  const selected = enquiries.find(e => e.id === req.query.id) || enquiries[0];
+    const total = await Contact.countDocuments(filter);
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const docs = await Contact.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * perPage)
+      .limit(perPage);
 
-  res.render('admin/enquiries', {
-    user: req.session.adminUser,
-    activePage: 'enquiries',
-    tabs,
-    enquiries,
-    selected,
-    activeTab
-  });
+    const enquiries = docs.map((c) => {
+      const o = c.toObject();
+      return {
+        ...o,
+        id: o._id.toString(),
+        date: fmtDate(c.createdAt),
+        status: o.status || 'NEW',
+      };
+    });
+
+    let selDoc = null;
+    if (req.query.id && /^[a-f\d]{24}$/i.test(req.query.id)) {
+      selDoc = await Contact.findById(req.query.id).catch(() => null);
+    }
+    if (!selDoc) selDoc = docs[0] || null;
+
+    let selected = null;
+    if (selDoc) {
+      if (!selDoc.read) {
+        selDoc.read = true;
+        await selDoc.save().catch(() => {});
+      }
+      const o = selDoc.toObject();
+      selected = {
+        ...o,
+        id: o._id.toString(),
+        ref: o.ref || `#ENG-${String(o._id).slice(-4).toUpperCase()}`,
+        status: o.status || 'NEW',
+        org: o.org || o.name,
+        typology: o.typology || o.service || '—',
+        footprint: o.footprint || '—',
+        budget: o.budget || '—',
+        brief: o.brief || o.message || '—',
+        email: o.email || '—',
+        phone: o.phone || '—',
+        address: o.address || o.location || '—',
+        assignee: (o.assignee && o.assignee.name)
+          ? o.assignee
+          : { initials: '—', name: 'Unassigned', role: 'Click ASSIGN to take ownership' },
+        date: fmtDate(o.createdAt),
+        logged: fmtLogged(o.createdAt),
+        ip: o.ip || '—',
+      };
+    }
+
+    res.render('admin/enquiries', {
+      user: req.session.adminUser,
+      activePage: 'enquiries',
+      tabs,
+      enquiries,
+      selected,
+      activeTab,
+      page,
+      totalPages,
+      total,
+      q,
+      showingFrom: total === 0 ? 0 : (page - 1) * perPage + 1,
+      showingTo: Math.min(total, page * perPage),
+    });
+  } catch (err) {
+    console.error('Enquiries error:', err.message);
+    res.status(500).render('admin/enquiries', {
+      user: req.session.adminUser,
+      activePage: 'enquiries',
+      tabs: [], enquiries: [], selected: null, activeTab: 'new',
+      page: 1, totalPages: 1, total: 0, q: '', showingFrom: 0, showingTo: 0,
+    });
+  }
 });
 
-router.get('/vendors', (req, res) => {
-  const tabs = [
-    { id: 'all', label: 'All', count: 42, active: true },
-    { id: 'new', label: 'New', count: 6, badge: true },
-    { id: 'verification', label: 'Under Verification', count: 8 },
-    { id: 'approved', label: 'Approved', count: 24 },
-    { id: 'archived', label: 'Archived', count: 4 }
-  ];
+router.post('/enquiries/:id/status', async (req, res) => {
+  const { status, tab } = req.body;
+  const id = req.params.id;
+  const messages = {
+    'NEW': { title: 'Marked as New', msg: 'Enquiry moved back to new enquiries.' },
+    'IN DISCUSSION': { title: 'Moved to Discussion', msg: 'Enquiry is now marked as in discussion.' },
+    'CONFIRMED': { title: 'Enquiry Confirmed', msg: 'Enquiry marked as confirmed.' },
+    'ARCHIVED': { title: 'Enquiry Archived', msg: 'Enquiry moved to archival log.' },
+  };
+  try {
+    if (!messages[status]) throw new Error('invalid status');
+    await Contact.updateOne({ _id: id }, { status, read: true });
+    req.session.flash = messages[status];
+  } catch (err) {
+    req.session.flash = { title: 'Update Failed', msg: 'Could not update enquiry status.' };
+  }
+  res.redirect(`/admin/enquiries?status=${encodeURIComponent(tab || 'new')}&id=${id}`);
+});
 
-  const vendors = [
-    {
-      id: 'VEN-4082',
-      name: 'Jaipur Heritage Crafts',
-      fullName: 'Jaipur Heritage Crafts & Stone',
-      founder: 'Maheshwar Sharma',
-      founderTitle: 'Master Artisan & Founder',
-      registered: '24 Sep 2026',
-      email: 'trade@jaipurstonecraft.in',
-      phone: '+91 98290 11442',
-      trade: 'LIME PLASTER & STONE',
-      location: 'Jaipur, Rajasthan',
-      action: 'REVIEW',
-      highlight: true,
-      status: 'UNDER SCRUTINY',
-      submissionDate: '24 Sep 2026',
-      submissionTime: '10:30 AM IST',
-      workshop: ['RIICO Ind. Area, Mansaravar', 'Jaipur, Rajasthan 302020'],
-      gstin: '08AAACJ4921IMZ5',
-      gstinVerified: true,
-      msme: 'UDYAM-RJ-17-004921Z2',
-      msmeNote: 'Valid to 2028',
-      capabilities: ['Traditional Slaked Lime (Chuna) Arish', 'Hand-carved Sandstone Jali', 'Heritage Structural Restoration', 'Basalt & Travertine Masonry'],
-      capacityStats: ['35 Guild Artisans', '12,000 sq. ft Yard', '4 Kilns'],
-      files: [
-        { name: 'Stone_Craft_', size: '14.2 MB Dossier', icon: 'fa-file-lines' },
-        { name: 'Material_Test_Repc', size: '3.8 MB Lab Certificate', icon: 'fa-flask' }
-      ],
-      checklist: [
-        { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: true },
-        { title: 'Material Provenance & Quarry Source', desc: 'Bansi Pahar & Dholpur quarry certificates valid.', checked: false },
-        { title: 'Quality Audit of Past Heritage Restorations', desc: 'Verified on-site work at Mandawa Haveli restoration.', checked: false },
-        { title: 'Worksite Safety & Guild Fair-Wage Compliance', desc: 'Artisan insurance declaration awaiting sign-off.', checked: false }
-      ],
-      curator: { name: 'Elena Vance', role: 'Principal Director • Delhi HQ Admin', tier: 'TIER 1: PREFERRED' },
-      remarks: 'Passed sample masonry inspections in Jaipur. Aarish plaster samples verified by Studio Materials Lab on 25 Sep 2026.'
-    },
-    {
-      id: 'VEN-4079',
-      name: 'Moradabad Brass & Guild',
-      fullName: 'Moradabad Brass & Guild Works',
-      founder: 'Anwar Qureshi',
-      founderTitle: 'Master Founder & Guild Head',
-      registered: '21 Sep 2026',
-      email: 'anwar@mbadbrasswork.com',
-      phone: '+91 94120 78219',
-      trade: 'BRASS & METAL FABRICATION',
-      location: 'Moradabad, UP',
-      action: 'VERIFY',
-      status: 'UNDER SCRUTINY',
-      submissionDate: '21 Sep 2026',
-      submissionTime: '02:15 PM IST',
-      workshop: ['Rustam Nagar Industrial Belt', 'Moradabad, Uttar Pradesh 244001'],
-      gstin: '09AABCM7845K1Z9',
-      gstinVerified: true,
-      msme: 'UDYAM-UP-23-0078412',
-      msmeNote: 'Valid to 2028',
-      capabilities: ['Lost-wax Brass Casting', 'Hand Beaten Metal Cladding', 'Decorative Iron & Brass Inlay', 'Antique Metal Restoration'],
-      capacityStats: ['62 Guild Artisans', '18,000 sq. ft Yard', '6 Furnaces'],
-      files: [
-        { name: 'Brass_Guild_Dossier', size: '11.6 MB Dossier', icon: 'fa-file-lines' },
-        { name: 'Metal_Test_Report', size: '2.9 MB Lab Certificate', icon: 'fa-flask' }
-      ],
-      checklist: [
-        { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: true },
-        { title: 'Material Provenance & Alloy Source', desc: 'Certified brass ingot suppliers verified.', checked: false },
-        { title: 'Quality Audit of Past Commissions', desc: 'Reference installations pending site audit.', checked: false },
-        { title: 'Worksite Safety & Guild Fair-Wage Compliance', desc: 'Artisan insurance declaration awaiting sign-off.', checked: false }
-      ],
-      curator: { name: 'Elena Vance', role: 'Principal Director • Delhi HQ Admin', tier: 'TIER 2: VERIFIED' },
-      remarks: 'Initial document pack received. Awaiting physical sample submission to Studio Materials Lab.'
-    },
-    {
-      id: 'VEN-4075',
-      name: 'Deodar Timber & Joinery',
-      fullName: 'Deodar Timber & Joinery Works',
-      founder: 'Tenzing Dorjee',
-      founderTitle: 'Principal Joiner & Founder',
-      registered: '19 Sep 2026',
-      email: 'projects@deodarjoinery.in',
-      phone: '+91 97361 44520',
-      trade: 'ARCHITECTURAL MILLWORK',
-      location: 'Dehradun / Delhi',
-      action: 'VERIFY',
-      status: 'UNDER SCRUTINY',
-      submissionDate: '19 Sep 2026',
-      submissionTime: '11:45 AM IST',
-      workshop: ['Rajpur Road Millwork Cluster', 'Dehradun, Uttarakhand 248009'],
-      gstin: '05AAKCD9217L1ZP',
-      gstinVerified: true,
-      msme: 'UDYAM-UK-04-0031876',
-      msmeNote: 'Valid to 2027',
-      capabilities: ['Architectural Door & Window Millwork', 'Precision Panel Joinery', 'Heritage Timber Repair', 'Custom Furniture Fabrication'],
-      capacityStats: ['48 Artisans', '9,500 sq. ft Workshop', '3 Kilns'],
-      files: [
-        { name: 'Timber_Joinery_Dossier', size: '9.8 MB Dossier', icon: 'fa-file-lines' },
-        { name: 'Moisture_Test_Report', size: '2.1 MB Lab Certificate', icon: 'fa-flask' }
-      ],
-      checklist: [
-        { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: true },
-        { title: 'Timber Provenance & FSC Source', desc: 'Sourced teak & deodar chain-of-custody pending.', checked: false },
-        { title: 'Quality Audit of Past Joinery Works', desc: 'Two reference sites queued for inspection.', checked: false },
-        { title: 'Worksite Safety & Guild Fair-Wage Compliance', desc: 'Artisan insurance declaration awaiting sign-off.', checked: false }
-      ],
-      curator: { name: 'Elena Vance', role: 'Principal Director • Delhi HQ Admin', tier: 'TIER 2: VERIFIED' },
-      remarks: 'Millwork drawings portfolio received. Physical joinery samples requested for lab verification.'
-    },
-    {
-      id: 'VEN-4071',
-      name: 'Terra Cotta Atelier Delhi',
-      fullName: 'Terra Cotta Atelier Delhi',
-      founder: 'Suhasini Sen',
-      founderTitle: 'Ceramic Artist & Founder',
-      registered: '18 Sep 2026',
-      email: 'atelier@senpottery.co',
-      phone: '+91 98110 33901',
-      trade: 'HERITAGE TERRAZZO & TILE',
-      location: 'Delhi NCR',
-      action: 'VERIFY',
-      status: 'UNDER SCRUTINY',
-      submissionDate: '18 Sep 2026',
-      submissionTime: '04:05 PM IST',
-      workshop: ['Okhla Phase III Craft Cluster', 'New Delhi, Delhi 110020'],
-      gstin: '07AASFS6634R1ZK',
-      gstinVerified: true,
-      msme: 'UDYAM-DL-02-0056119',
-      msmeNote: 'Valid to 2028',
-      capabilities: ['Handmade Heritage Terrazzo', 'Glazed Terracotta Tile', 'Mosaic Inlay Flooring', 'Custom Clay Facade Elements'],
-      capacityStats: ['24 Artisans', '7,200 sq. ft Yard', '2 Kilns'],
-      files: [
-        { name: 'Terrazzo_Atelier_Dossier', size: '8.4 MB Dossier', icon: 'fa-file-lines' },
-        { name: 'Tile_Flex_Test_Report', size: '1.9 MB Lab Certificate', icon: 'fa-flask' }
-      ],
-      checklist: [
-        { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: true },
-        { title: 'Aggregate & Pigment Provenance', desc: 'Marble chip suppliers under review.', checked: false },
-        { title: 'Quality Audit of Past Installations', desc: 'Three reference floors pending verification.', checked: false },
-        { title: 'Worksite Safety & Guild Fair-Wage Compliance', desc: 'Artisan insurance declaration awaiting sign-off.', checked: false }
-      ],
-      curator: { name: 'Elena Vance', role: 'Principal Director • Delhi HQ Admin', tier: 'TIER 2: VERIFIED' },
-      remarks: 'Tile sample kit received at Delhi HQ. Flexural strength test scheduled with Studio Materials Lab.'
-    },
-    {
-      id: 'VEN-4066',
-      name: 'Apex Façade & Glazing',
-      fullName: 'Apex Façade & Glazing Pvt Ltd',
-      founder: 'Vikramaditya Rao',
-      founderTitle: 'Founder & Head of Engineering',
-      registered: '15 Sep 2026',
-      email: 'engg@apexglazing.com',
-      phone: '+91 98201 55940',
-      trade: 'ACOUSTIC & GLAZING',
-      location: 'Mumbai, MH',
-      action: 'REVIEW',
-      highlight: false,
-      status: 'UNDER SCRUTINY',
-      submissionDate: '15 Sep 2026',
-      submissionTime: '09:50 AM IST',
-      workshop: ['Andheri East Industrial Estate', 'Mumbai, Maharashtra 400093'],
-      gstin: '27AAHCA8821M1ZQ',
-      gstinVerified: true,
-      msme: 'UDYAM-MH-23-0112845',
-      msmeNote: 'Valid to 2028',
-      capabilities: ['Structural Glazing Systems', 'Acoustic Glass Partitioning', 'Unitized Façade Modules', 'Bird-safe & Solar Glass Retrofit'],
-      capacityStats: ['85 Engineers', '22,000 sq. ft Plant', '5 CNC Lines'],
-      files: [
-        { name: 'Facade_Glazing_Dossier', size: '16.1 MB Dossier', icon: 'fa-file-lines' },
-        { name: 'Acoustic_Test_Certificate', size: '4.2 MB Lab Certificate', icon: 'fa-flask' }
-      ],
-      checklist: [
-        { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: true },
-        { title: 'Glass & Profile Provenance', desc: 'Float glass supplier audit in progress.', checked: false },
-        { title: 'Quality Audit of Past Façades', desc: 'Two tower references scheduled for inspection.', checked: false },
-        { title: 'Worksite Safety & Guild Fair-Wage Compliance', desc: 'Worker safety dossier awaiting sign-off.', checked: false }
-      ],
-      curator: { name: 'Elena Vance', role: 'Principal Director • Delhi HQ Admin', tier: 'TIER 1: PREFERRED' },
-      remarks: 'Engineering dossier and acoustic test certificates received. On-site audit of Andheri plant proposed.'
-    },
-    {
-      id: 'VEN-4060',
-      name: 'Marwar Marbles & Granite',
-      fullName: 'Marwar Marbles & Granite Co.',
-      founder: 'Bhanwar Singh',
-      founderTitle: 'Quarry Owner & Managing Partner',
-      registered: '12 Sep 2026',
-      email: 'quarry@marwarmarble.in',
-      phone: '+91 94141 88302',
-      trade: 'ARCHITECTURAL MASONRY',
-      location: 'Jodhpur, Rajasthan',
-      action: 'VERIFY',
-      status: 'UNDER SCRUTINY',
-      submissionDate: '12 Sep 2026',
-      submissionTime: '01:20 PM IST',
-      workshop: ['Madanganj Quarry Belt', 'Jodhpur, Rajasthan 342015'],
-      gstin: '08AAFCM5512N1ZT',
-      gstinVerified: true,
-      msme: 'UDYAM-RJ-19-0067304',
-      msmeNote: 'Valid to 2027',
-      capabilities: ['Dholpur Sandstone Blocks', 'Marble Slab Processing', 'CNC Stone Cutting', 'Heritage Masonry Restoration'],
-      capacityStats: ['54 Artisans', '40,000 sq. ft Yard', '2 Saw Lines'],
-      files: [
-        { name: 'Marwar_Masonry_Dossier', size: '12.7 MB Dossier', icon: 'fa-file-lines' },
-        { name: 'Stone_Compression_Report', size: '3.1 MB Lab Certificate', icon: 'fa-flask' }
-      ],
-      checklist: [
-        { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: true },
-        { title: 'Quarry Lease & Provenance Source', desc: 'Lease documents under legal review.', checked: false },
-        { title: 'Quality Audit of Past Masonry Works', desc: 'Reference haveli project pending inspection.', checked: false },
-        { title: 'Worksite Safety & Guild Fair-Wage Compliance', desc: 'Artisan insurance declaration awaiting sign-off.', checked: false }
-      ],
-      curator: { name: 'Elena Vance', role: 'Principal Director • Delhi HQ Admin', tier: 'TIER 2: VERIFIED' },
-      remarks: 'Quarry documentation received. Compression test samples dispatched to Studio Materials Lab.'
+router.post('/enquiries/:id/assign', async (req, res) => {
+  const id = req.params.id;
+  const u = req.session.adminUser || {};
+  try {
+    await Contact.updateOne({ _id: id }, {
+      assignee: { initials: u.initials || 'AD', name: u.name || 'Admin', role: u.title || u.role || 'Administrator' },
+      read: true,
+    });
+    req.session.flash = { title: 'Enquiry Assigned', msg: `Enquiry assigned to ${u.name || 'Admin'}.` };
+  } catch (err) {
+    req.session.flash = { title: 'Assignment Failed', msg: 'Could not assign enquiry.' };
+  }
+  res.redirect(`/admin/enquiries?status=${encodeURIComponent(req.body.tab || 'new')}&id=${id}`);
+});
+
+const VEN_STATUS = { new: 'NEW', verification: 'UNDER SCRUTINY', approved: 'APPROVED', archived: 'ARCHIVED' };
+
+router.get('/vendors', async (req, res) => {
+  try {
+    const activeTab = (req.query.status && VEN_STATUS[req.query.status]) || (req.query.status === 'all' ? 'all' : 'all');
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const perPage = 6;
+    const q = (req.query.q || '').trim();
+
+    const counts = {
+      all: await Vendor.countDocuments(),
+      new: await Vendor.countDocuments({ status: 'NEW' }),
+      verification: await Vendor.countDocuments({ status: 'UNDER SCRUTINY' }),
+      approved: await Vendor.countDocuments({ status: 'APPROVED' }),
+      archived: await Vendor.countDocuments({ status: 'ARCHIVED' }),
+    };
+
+    const tabs = [
+      { id: 'all', label: 'All', count: counts.all, active: activeTab === 'all' },
+      { id: 'new', label: 'New', count: counts.new, badge: true, active: activeTab === 'new' },
+      { id: 'verification', label: 'Under Verification', count: counts.verification, active: activeTab === 'verification' },
+      { id: 'approved', label: 'Approved', count: counts.approved, active: activeTab === 'approved' },
+      { id: 'archived', label: 'Archived', count: counts.archived, active: activeTab === 'archived' },
+    ];
+
+    const filter = {};
+    if (VEN_STATUS[activeTab]) filter.status = VEN_STATUS[activeTab];
+    if (q) {
+      const rx = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [{ vendorName: rx }, { location: rx }, { trade: rx }, { founder: rx }];
     }
-  ];
 
-  res.render('admin/vendors', {
-    user: req.session.adminUser,
-    activePage: 'vendors',
-    tabs,
-    vendors,
-    showingFrom: 1,
-    showingTo: 6,
-    totalRegistrations: 42,
-    currentPage: 1,
-    totalPages: 3
-  });
+    const total = await Vendor.countDocuments(filter);
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const docs = await Vendor.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * perPage)
+      .limit(perPage);
+
+    const defaultChecklist = [
+      { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: false },
+      { title: 'Material Provenance & Source Verification', desc: 'Supplier / quarry source certificates under review.', checked: false },
+      { title: 'Quality Audit of Past Works', desc: 'Reference sites pending inspection.', checked: false },
+      { title: 'Worksite Safety & Fair-Wage Compliance', desc: 'Worker insurance declaration awaiting sign-off.', checked: false },
+    ];
+
+    const u = req.session.adminUser || {};
+    const vendors = docs.map((c) => {
+      const o = c.toObject();
+      const status = o.status || 'NEW';
+      return {
+        ...o,
+        id: `VEN-${String(o._id).slice(-4).toUpperCase()}`,
+        docId: o._id.toString(),
+        name: o.vendorName,
+        fullName: o.fullName || o.vendorName,
+        founder: o.founder || '—',
+        founderTitle: o.founderTitle || 'Founder',
+        registered: fmtDate(c.createdAt),
+        email: o.email || '—',
+        phone: o.phone || '—',
+        trade: (o.trade || (o.services || []).join(' & ') || '—').toUpperCase(),
+        location: o.location || '—',
+        action: status === 'NEW' ? 'REVIEW' : 'VERIFY',
+        highlight: status === 'NEW',
+        status,
+        submissionDate: fmtDate(c.createdAt),
+        submissionTime: c.createdAt
+          ? new Date(c.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase() + ' IST'
+          : '—',
+        workshop: (o.workshop && o.workshop.length) ? o.workshop : [o.location || '—'],
+        gstin: o.gstin || o.gstNumber || '—',
+        gstinVerified: !!o.gstinVerified,
+        msme: o.msme || '—',
+        msmeNote: o.msmeNote || 'On record',
+        capabilities: (o.capabilities && o.capabilities.length) ? o.capabilities : (o.services && o.services.length ? o.services : ['—']),
+        capacityStats: (o.capacityStats && o.capacityStats.length) ? o.capacityStats : ['—'],
+        files: o.files || [],
+        checklist: (o.checklist && o.checklist.length) ? o.checklist : defaultChecklist,
+        curator: (o.curator && o.curator.name) ? o.curator : { name: u.name || 'Admin', role: u.title || 'Administrator', tier: 'TIER 3: PENDING' },
+        remarks: o.remarks || '',
+      };
+    });
+
+    res.render('admin/vendors', {
+      user: req.session.adminUser,
+      activePage: 'vendors',
+      tabs,
+      vendors,
+      activeTab,
+      q,
+      page,
+      totalPages,
+      totalRegistrations: total,
+      currentPage: page,
+      showingFrom: total === 0 ? 0 : (page - 1) * perPage + 1,
+      showingTo: Math.min(total, page * perPage),
+    });
+  } catch (err) {
+    console.error('Vendors error:', err.message);
+    res.status(500).render('admin/vendors', {
+      user: req.session.adminUser,
+      activePage: 'vendors',
+      tabs: [], vendors: [], activeTab: 'all', q: '',
+      page: 1, totalPages: 1, totalRegistrations: 0, currentPage: 1, showingFrom: 0, showingTo: 0,
+    });
+  }
+});
+
+router.post('/vendors/:id/status', async (req, res) => {
+  const { status, tab } = req.body;
+  const messages = {
+    'APPROVED': { title: 'Vendor Approved', msg: 'Vendor approved and onboarded to the vendor guild.' },
+    'ARCHIVED': { title: 'Registration Declined', msg: 'Vendor registration declined and archived.' },
+    'UNDER SCRUTINY': { title: 'Additional Review Requested', msg: 'Sample / audit request logged. Vendor remains under scrutiny.' },
+    'NEW': { title: 'Moved to New', msg: 'Vendor moved back to new registrations.' },
+  };
+  try {
+    if (!messages[status]) throw new Error('invalid');
+    await Vendor.updateOne({ _id: req.params.id }, { status, read: true });
+    req.session.flash = messages[status];
+  } catch (err) {
+    req.session.flash = { title: 'Update Failed', msg: 'Could not update vendor status.' };
+  }
+  res.redirect(`/admin/vendors?status=${encodeURIComponent(tab || 'all')}`);
+});
+
+router.post('/vendors/:id/checklist', async (req, res) => {
+  const { index, checked, tab } = req.body;
+  try {
+    const vendor = await Vendor.findById(req.params.id);
+    if (vendor && vendor.checklist[Number(index)]) {
+      vendor.checklist[Number(index)].checked = checked === 'true' || checked === 'on';
+      await vendor.save();
+      req.session.flash = { title: 'Checklist Updated', msg: 'Verification checklist step saved.' };
+    }
+  } catch (err) {
+    req.session.flash = { title: 'Update Failed', msg: 'Could not save checklist.' };
+  }
+  res.redirect(`/admin/vendors?status=${encodeURIComponent(tab || 'all')}&q=${encodeURIComponent(req.body.q || '')}`);
+});
+
+router.post('/vendors/:id/remarks', async (req, res) => {
+  try {
+    await Vendor.updateOne({ _id: req.params.id }, { remarks: req.body.remarks || '' });
+    req.session.flash = { title: 'Remarks Saved', msg: 'Curator remarks have been saved.' };
+  } catch (err) {
+    req.session.flash = { title: 'Update Failed', msg: 'Could not save remarks.' };
+  }
+  res.redirect(`/admin/vendors?status=${encodeURIComponent(req.body.tab || 'all')}&q=${encodeURIComponent(req.body.q || '')}`);
 });
 
 router.get('/settings', (req, res) => {
   res.render('admin/settings', { user: req.session.adminUser, activePage: 'settings' });
 });
 
-router.post('/settings/profile', (req, res) => {
+router.post('/settings/profile', async (req, res) => {
   const { name, title, phone, location } = req.body;
-  if (req.session.adminUser) {
-    if (name) req.session.adminUser.name = name;
-    if (location) req.session.adminUser.location = location;
-    if (title) req.session.adminUser.title = title;
-    if (phone) req.session.adminUser.phone = phone;
-    const parts = req.session.adminUser.name.trim().split(/\s+/);
-    req.session.adminUser.initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'AD';
+  try {
+    if (req.session.adminId) {
+      const admin = await Admin.findById(req.session.adminId);
+      if (admin) {
+        if (name) admin.name = name;
+        if (title) admin.title = title;
+        if (phone !== undefined) admin.phone = phone;
+        if (location) admin.location = location;
+        const parts = (admin.name || '').trim().split(/\s+/);
+        admin.initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'AD';
+        await admin.save();
+        req.session.adminUser = { ...req.session.adminUser, ...admin.toObject(), id: admin._id.toString(), password: undefined };
+        delete req.session.adminUser.password;
+      }
+    } else if (req.session.adminUser) {
+      if (name) req.session.adminUser.name = name;
+      if (title) req.session.adminUser.title = title;
+      if (phone) req.session.adminUser.phone = phone;
+      if (location) req.session.adminUser.location = location;
+      const parts = req.session.adminUser.name.trim().split(/\s+/);
+      req.session.adminUser.initials = ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'AD';
+    }
+    req.session.flash = { title: 'Profile Updated', msg: 'Your profile details have been saved.' };
+  } catch (err) {
+    console.error('Profile update error:', err.message);
+    req.session.flash = { title: 'Update Failed', msg: 'Could not save profile. Please try again.' };
   }
   res.redirect('/admin/settings');
 });
 
-router.post('/settings/password', (req, res) => {
+router.post('/settings/password', async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  try {
+    if (!req.session.adminId) {
+      req.session.flash = { title: 'Change Failed', msg: 'Password change requires an active database account.' };
+      return res.redirect('/admin/settings');
+    }
+    const admin = await Admin.findById(req.session.adminId);
+    if (!admin || !(await admin.comparePassword(currentPassword || ''))) {
+      req.session.flash = { title: 'Change Failed', msg: 'Current password is incorrect.' };
+      return res.redirect('/admin/settings');
+    }
+    if (!newPassword || newPassword.length < 8) {
+      req.session.flash = { title: 'Change Failed', msg: 'New password must be at least 8 characters.' };
+      return res.redirect('/admin/settings');
+    }
+    if (newPassword !== confirmPassword) {
+      req.session.flash = { title: 'Change Failed', msg: 'New passwords do not match.' };
+      return res.redirect('/admin/settings');
+    }
+    admin.password = newPassword;
+    await admin.save();
+    req.session.flash = { title: 'Password Changed', msg: 'Your password has been updated successfully.' };
+  } catch (err) {
+    console.error('Password change error:', err.message);
+    req.session.flash = { title: 'Change Failed', msg: 'Could not change password. Please try again.' };
+  }
   res.redirect('/admin/settings');
 });
 

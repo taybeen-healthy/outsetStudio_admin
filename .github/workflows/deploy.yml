@@ -37,7 +37,7 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
             export PATH=$PATH:/usr/local/bin:/usr/bin:/bin:$PATH
             
-            echo "=== Starting Outset Studio Backend Deploy ==="
+            echo "=== Starting Outset Studio Admin Deploy ==="
             cd /var/www/outsetStudio_admin
             git fetch origin main
             git reset --hard origin/main
@@ -46,8 +46,11 @@ jobs:
             echo "SESSION_SECRET=outsetstudio_admin_secret_key_2024" >> .env
             echo "ADMIN_EMAIL=admin@outsetstudio.in" >> .env
             echo "ADMIN_PASSWORD=admin123" >> .env
+            echo "FRONTEND_URL=https://outsetstudio.in" >> .env
+            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
             
             npm ci --production
+            node seed.js || true
             chmod -R 755 /var/www/outsetStudio_admin
             
             pm2 startup systemd -u $USER --hp $HOME 2>/dev/null || true

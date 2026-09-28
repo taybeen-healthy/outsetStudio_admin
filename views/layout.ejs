@@ -23,5 +23,27 @@
       </div>
     </div>
   </div>
+
+  <% if (locals.flash) { %>
+    <div class="status-toast" id="flashToast">
+      <i class="fa-solid fa-circle-check toast-icon"></i>
+      <div class="toast-body">
+        <div class="toast-title"><%= flash.title || 'Success' %></div>
+        <div class="toast-msg"><%= flash.msg %></div>
+      </div>
+      <button type="button" class="toast-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <script>
+      (function () {
+        var t = document.getElementById('flashToast');
+        if (!t) return;
+        var timer = setTimeout(function () { t.classList.add('toast-hide'); }, 6000);
+        t.querySelector('.toast-close').addEventListener('click', function () {
+          clearTimeout(timer);
+          t.classList.add('toast-hide');
+        });
+      })();
+    </script>
+  <% } %>
 </body>
 </html>

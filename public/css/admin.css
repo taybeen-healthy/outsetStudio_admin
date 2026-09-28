@@ -3753,3 +3753,10 @@ body {
     padding: 20px;
   }
 }
+
+a.vr-tab,
+a.vr-page,
+a.vr-page-arrow,
+a.enq-page-btn {
+  text-decoration: none;
+}

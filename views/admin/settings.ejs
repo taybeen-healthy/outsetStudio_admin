@@ -19,7 +19,7 @@
     </div>
 
     <div class="avatar-row">
-      <div class="avatar-box">EV</div>
+      <div class="avatar-box"><%= user.initials || 'AD' %></div>
       <div class="avatar-details">
         <div class="avatar-title">Profile Avatar</div>
         <div class="avatar-subtitle">JPG, PNG or GIF. Max 2MB.</div>
@@ -36,22 +36,22 @@
       <div class="form-grid-2">
         <div class="form-group">
           <label>Full Name</label>
-          <input type="text" name="name" value="Elena Vance" class="form-input">
+          <input type="text" name="name" value="<%= user.name || '' %>" class="form-input" required>
         </div>
         <div class="form-group">
           <label>Professional Title / Role</label>
-          <input type="text" name="title" value="Principal Director & Studio Admin" class="form-input">
+          <input type="text" name="title" value="<%= user.title || '' %>" class="form-input">
         </div>
       </div>
       <div class="form-grid-2">
         <div class="form-group">
           <label>Contact Number</label>
-          <input type="text" name="phone" value="+91 98988 44855" class="form-input">
+          <input type="text" name="phone" value="<%= user.phone || '' %>" class="form-input">
         </div>
       </div>
       <div class="form-group">
         <label>Office / Studio Location</label>
-        <input type="text" name="location" value="Delhi HQ" class="form-input">
+        <input type="text" name="location" value="<%= user.location || '' %>" class="form-input" required>
       </div>
 
       <div class="card-sep"></div>

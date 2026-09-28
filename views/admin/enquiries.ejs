@@ -14,10 +14,11 @@
           <% }); %>
         </div>
         <div class="enq-toolbar-right">
-          <div class="enq-filter-search">
+          <form class="enq-filter-search" method="GET" action="/admin/enquiries">
+            <input type="hidden" name="status" value="<%= activeTab %>">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" placeholder="Filter by client name, city...">
-          </div>
+            <input type="text" name="q" value="<%= q || '' %>" placeholder="Filter by client name, city...">
+          </form>
           <div class="enq-view-toggle">
             <button class="enq-view-btn active" type="button"><i class="fa-solid fa-list-ul"></i></button>
             <button class="enq-view-btn" type="button"><i class="fa-solid fa-table-cells-large"></i></button>
@@ -35,18 +36,21 @@
           </tr>
         </thead>
         <tbody>
+          <% if (enquiries.length === 0) { %>
+            <tr><td colspan="4" style="padding:28px;text-align:center;color:#999;">No enquiries found<%= q ? ' for "' + q + '"' : '' %>.</td></tr>
+          <% } %>
           <% enquiries.forEach(function(e) { %>
-            <tr class="<%= selected.id === e.id ? 'selected' : '' %>" onclick="window.location='/admin/enquiries?id=<%= e.id %>'">
+            <tr class="<%= selected && String(selected.id) === String(e.id) ? 'selected' : '' %>" onclick="window.location='/admin/enquiries?status=<%= activeTab %>&id=<%= e.id %><%= q ? '&q=' + encodeURIComponent(q) : '' %>'">
               <td>
                 <div class="client-name"><%= e.name %></div>
-                <div class="client-email"><%= e.email %></div>
+                <div class="client-email"><%= e.email || '' %></div>
               </td>
               <td>
-                <div class="service-name"><%= e.service %></div>
-                <div class="service-scope"><%= e.scope %></div>
+                <div class="service-name"><%= e.service || e.typology || '—' %></div>
+                <div class="service-scope"><%= e.scope || e.message || '' %></div>
               </td>
               <td><span class="date-text"><%= e.date %></span></td>
-              <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> <%= e.location %></span></td>
+              <td><span class="location-text"><i class="fa-solid fa-location-dot"></i> <%= e.location || '—' %></span></td>
             </tr>
           <% }); %>
         </tbody>
@@ -54,22 +58,37 @@
 
       <div class="enq-table-footer">
         <div class="enq-showing">
-          <span>Showing 1–6 of 28 enquiries</span>
+          <span>Showing <%= showingFrom %>–<%= showingTo %> of <%= total %> enquiries</span>
           <span class="enq-showing-sep">•</span>
           <strong>ARCHIVAL BATCH #2026–Q3</strong>
         </div>
         <div class="enq-pagination">
-          <button class="enq-page-btn" type="button" disabled>Prev</button>
-          <button class="enq-page-btn active" type="button">1</button>
-          <button class="enq-page-btn" type="button">2</button>
-          <button class="enq-page-btn" type="button">3</button>
-          <button class="enq-page-btn" type="button">Next</button>
+          <% const baseQs = 'status=' + activeTab + (q ? '&q=' + encodeURIComponent(q) : ''); %>
+          <% if (page > 1) { %>
+            <a class="enq-page-btn" href="/admin/enquiries?<%= baseQs %>&page=<%= page - 1 %>">Prev</a>
+          <% } else { %>
+            <button class="enq-page-btn" type="button" disabled>Prev</button>
+          <% } %>
+          <% for (let p = 1; p <= totalPages; p++) { %>
+            <a class="enq-page-btn <%= p === page ? 'active' : '' %>" href="/admin/enquiries?<%= baseQs %>&page=<%= p %>"><%= p %></a>
+          <% } %>
+          <% if (page < totalPages) { %>
+            <a class="enq-page-btn" href="/admin/enquiries?<%= baseQs %>&page=<%= page + 1 %>">Next</a>
+          <% } else { %>
+            <button class="enq-page-btn" type="button" disabled>Next</button>
+          <% } %>
         </div>
       </div>
     </div>
   </div>
 
   <aside class="enq-detail">
+    <% if (!selected) { %>
+      <div class="enq-detail-body">
+        <div class="enq-section-label">NO ENQUIRY SELECTED</div>
+        <div class="enq-brief">Select an enquiry from the list to view its full brief and take action.</div>
+      </div>
+    <% } else { %>
     <div class="enq-detail-head">
       <span class="enq-ref"><span class="enq-ref-dot"></span><%= selected.ref %></span>
       <span class="enq-status-badge"><%= selected.status %></span>
@@ -113,19 +132,27 @@
             <div class="enq-assignee-role"><%= selected.assignee.role %></div>
           </div>
         </div>
-        <button class="enq-assign-btn" type="button">ASSIGN</button>
+        <form action="/admin/enquiries/<%= selected.id %>/assign" method="POST" style="display:inline;">
+          <input type="hidden" name="tab" value="<%= activeTab %>">
+          <button class="enq-assign-btn" type="submit">ASSIGN</button>
+        </form>
       </div>
 
-      <button class="enq-survey-btn" type="button"><i class="fa-solid fa-arrow-up"></i> INITIATE SITE SURVEY</button>
-      <div class="enq-action-row">
-        <button class="enq-action-btn" type="button">Mark Discussion</button>
-        <button class="enq-action-btn danger" type="button">Decline / Archive</button>
-      </div>
+      <form action="/admin/enquiries/<%= selected.id %>/status" method="POST">
+        <input type="hidden" name="tab" value="<%= activeTab %>">
+        <input type="hidden" name="status" value="IN DISCUSSION">
+        <button class="enq-survey-btn" type="submit"><i class="fa-solid fa-arrow-up"></i> INITIATE SITE SURVEY</button>
+        <div class="enq-action-row">
+          <button class="enq-action-btn" type="submit" name="status" value="IN DISCUSSION">Mark Discussion</button>
+          <button class="enq-action-btn danger" type="submit" name="status" value="ARCHIVED">Decline / Archive</button>
+        </div>
+      </form>
     </div>
 
     <div class="enq-detail-foot">
       <span><strong>LOGGED:</strong> <%= selected.logged %></span>
       <span><strong>IP:</strong> <%= selected.ip %></span>
     </div>
+    <% } %>
   </aside>
 </div>

@@ -33,6 +33,14 @@ app.use(session({
   cookie: { maxAge: 24 * 60 * 60 * 1000 }
 }));
 
+// Flash messages (one-time toast)
+app.use((req, res, next) => {
+  res.locals.flash = req.session.flash || null;
+  delete req.session.flash;
+  res.locals.user = req.session.adminUser || null;
+  next();
+});
+
 // Admin EJS routes
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
