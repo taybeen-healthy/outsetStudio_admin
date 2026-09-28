@@ -34,7 +34,7 @@ router.use(requireAuth);
 router.get('/dashboard', async (req, res) => {
   try {
     const [totalProjects, newEnquiries, pendingReviews, newVendors, totalVendors, feeAgg, ratingAgg] = await Promise.all([
-      Project.countDocuments(),
+      Project.countDocuments({ type: { $ne: 'portfolio' } }),
       Contact.countDocuments({ status: 'NEW' }),
       Testimonial.countDocuments({ status: 'pending' }),
       Vendor.countDocuments({ status: 'NEW' }),
@@ -105,9 +105,34 @@ router.get('/dashboard', async (req, res) => {
 
 router.get('/projects', async (req, res) => {
   try {
-    const docs = await Project.find().sort({ createdAt: -1 });
+    const view = req.query.view === 'portfolio' ? 'portfolio' : 'pipeline';
+    const pipelineCount = await Project.countDocuments({ type: { $ne: 'portfolio' } });
+    const portfolioCount = await Project.countDocuments({ type: 'portfolio' });
+
+    const docs = view === 'portfolio'
+      ? await Project.find({ type: 'portfolio' }).sort({ order: 1 })
+      : await Project.find({ type: { $ne: 'portfolio' } }).sort({ createdAt: -1 });
+
     const projects = docs.map((c) => {
       const o = c.toObject();
+      if (view === 'portfolio') {
+        const published = o.active !== false;
+        return {
+          ...o,
+          id: o._id.toString(),
+          name: o.title,
+          code: o.slug || '—',
+          client: o.subtitle || '—',
+          location: o.location || '—',
+          scale: (o.specs && o.specs.type) || '—',
+          status: published ? 'PUBLISHED' : 'DRAFT',
+          statusClass: published ? 'completed' : 'lead',
+          progress: published ? 100 : 0,
+          fees: '—',
+          feeStatus: published ? 'LIVE ON WEBSITE' : 'HIDDEN FROM WEBSITE',
+          feeClass: published ? 'paid' : 'due',
+        };
+      }
       const feeStatus = o.feeStatus || '—';
       return {
         ...o,
@@ -125,10 +150,10 @@ router.get('/projects', async (req, res) => {
         feeClass: /PAID|SETTLED/i.test(String(o.feeStatus || '')) ? 'paid' : 'due',
       };
     });
-    res.render('admin/projects', { user: req.session.adminUser, projects, activePage: 'projects' });
+    res.render('admin/projects', { user: req.session.adminUser, projects, view, pipelineCount, portfolioCount, activePage: 'projects' });
   } catch (err) {
     console.error('Projects error:', err.message);
-    res.status(500).render('admin/projects', { user: req.session.adminUser, projects: [], activePage: 'projects' });
+    res.status(500).render('admin/projects', { user: req.session.adminUser, projects: [], view: 'pipeline', pipelineCount: 0, portfolioCount: 0, activePage: 'projects' });
   }
 });
 
@@ -149,7 +174,7 @@ router.get('/projects/:id/edit', async (req, res) => {
 
 router.post('/projects/:id', async (req, res) => {
   try {
-    const { title, code, client, location, scale, status, progress, fees, feeStatus, subtitle } = req.body;
+    const { title, code, client, location, scale, status, progress, fees, feeStatus, subtitle, image } = req.body;
     const project = await Project.findById(req.params.id);
     if (!project) throw new Error('not found');
     if (title && title.trim()) project.title = title.trim();
@@ -162,13 +187,15 @@ router.post('/projects/:id', async (req, res) => {
     project.fees = Number(String(fees || '').replace(/[^0-9]/g, '')) || 0;
     project.feeStatus = feeStatus || '';
     project.subtitle = subtitle || '';
+    if (image !== undefined) project.image = image;
+    if (req.body.active !== undefined) project.active = req.body.active === 'on' || req.body.active === 'true';
     await project.save();
     req.session.flash = { title: 'Project Updated', msg: 'Project details saved.' };
   } catch (err) {
     console.error('Project update error:', err.message);
     req.session.flash = { title: 'Update Failed', msg: 'Could not update project.' };
   }
-  res.redirect('/admin/projects');
+  res.redirect(req.body._view === 'portfolio' ? '/admin/projects?view=portfolio' : '/admin/projects');
 });
 
 router.post('/projects/:id/delete', async (req, res) => {

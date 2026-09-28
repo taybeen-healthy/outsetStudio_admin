@@ -16,16 +16,21 @@ const projectSchema = new mongoose.Schema({
   fees: { type: Number, default: 0 },
   feeStatus: { type: String, default: '' },
   specs: {
-    projectName: String,
-    type: String,
-    location: String,
-    scope: String,
+    type: new mongoose.Schema({
+      projectName: String,
+      type: String,
+      location: String,
+      scope: String,
+    }, { _id: false, id: false }),
   },
   concept: {
     title: String,
     description: String,
   },
   content: { type: mongoose.Schema.Types.Mixed, default: {} },
+  type: { type: String, default: '' },
+  active: { type: Boolean, default: true },
+  order: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Project', projectSchema);

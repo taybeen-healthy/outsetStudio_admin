@@ -4,6 +4,11 @@
   <p class="page-desc projects-desc">Manage active architectural briefs, site surveys, turnkey execution tranches, vendor disbursements, and archival sign-offs across Indian metropolitan practices.</p>
 </div>
 
+<div class="review-filters" style="margin-bottom:18px; display:flex; width:fit-content; border:1px solid var(--border, #e5e5e5);">
+  <a href="/admin/projects?view=pipeline" class="review-filter-btn <%= view === 'pipeline' ? 'active' : '' %>" style="text-decoration:none; display:flex; flex-direction:row; align-items:center; gap:6px;">PIPELINE (<%= pipelineCount %>)</a>
+  <a href="/admin/projects?view=portfolio" class="review-filter-btn <%= view === 'portfolio' ? 'active' : '' %>" style="text-decoration:none; display:flex; flex-direction:row; align-items:center; gap:6px;">PORTFOLIO (<%= portfolioCount %>)</a>
+</div>
+
 <div class="table-container projects-table-wrap">
   <table class="data-table projects-table">
     <thead>
@@ -17,7 +22,7 @@
     </thead>
     <tbody>
       <% if (projects.length === 0) { %>
-        <tr><td colspan="5" style="padding:28px;text-align:center;color:#999;">No projects found.</td></tr>
+        <tr><td colspan="5" style="padding:28px;text-align:center;color:#999;"><%= view === 'portfolio' ? 'No portfolio projects yet.' : 'No projects found.' %></td></tr>
       <% } %>
       <% projects.forEach(function(p) { %>
         <tr>

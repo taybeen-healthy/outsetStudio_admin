@@ -5,7 +5,7 @@
       <h1 class="page-title"><%= project ? 'Edit Project' : 'New Project' %></h1>
       <p class="page-desc">Update project brief details, stage, progress and fee tracking for the studio pipeline.</p>
     </div>
-    <a href="/admin/projects" class="save-btn save-btn-header" style="text-decoration:none;">&larr; Back to Projects</a>
+    <a href="/admin/projects<%= project && project.type === 'portfolio' ? '?view=portfolio' : '' %>" class="save-btn save-btn-header" style="text-decoration:none;">&larr; Back to Projects</a>
   </div>
   <div class="page-divider"></div>
 </div>
@@ -20,16 +20,45 @@
     </div>
 
     <form class="account-form" action="<%= project ? '/admin/projects/' + project._id : '/admin/projects' %>" method="POST">
+      <% var isPortfolio = !!(project && project.type === 'portfolio'); %>
+      <% if (isPortfolio) { %><input type="hidden" name="_view" value="portfolio"><% } %>
       <div class="form-grid-2">
         <div class="form-group">
           <label>Project Title *</label>
           <input type="text" name="title" value="<%= project ? project.title : '' %>" class="form-input" required>
         </div>
+        <% if (isPortfolio) { %>
+        <div class="form-group">
+          <label>Subtitle (shown on website)</label>
+          <input type="text" name="subtitle" value="<%= project ? (project.subtitle || '') : '' %>" class="form-input" placeholder="A thoughtfully crafted café experience...">
+        </div>
+        <% } else { %>
         <div class="form-group">
           <label>Project Code</label>
           <input type="text" name="code" value="<%= project ? (project.code || '') : '' %>" class="form-input" placeholder="#OS-DEL-01">
         </div>
+        <% } %>
       </div>
+
+      <% if (isPortfolio) { %>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>Location (website filter)</label>
+          <input type="text" name="location" value="<%= project ? (project.location || '') : '' %>" class="form-input" placeholder="GURUGRAM">
+        </div>
+        <div class="form-group">
+          <label>Card Image URL</label>
+          <input type="text" name="image" value="<%= project ? (project.image || '') : '' %>" class="form-input" placeholder="/image39.png">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+          <input type="checkbox" name="active" <%= !project || project.active !== false ? 'checked' : '' %> style="width:16px; height:16px; accent-color:#B84E29;">
+          Published — visible on the public website (uncheck to hide)
+        </label>
+      </div>
+      <% } else { %>
 
       <div class="form-grid-2">
         <div class="form-group">
@@ -78,6 +107,7 @@
           <input type="text" name="feeStatus" value="<%= project ? (project.feeStatus || '') : '' %>" class="form-input" placeholder="DUE RETAINER / PAID FULL">
         </div>
       </div>
+      <% } %>
 
       <div class="card-sep"></div>
 
@@ -85,7 +115,7 @@
         <button type="submit" class="save-btn">
           <i class="fa-solid fa-floppy-disk"></i> <%= project ? 'Save Changes' : 'Create Project' %>
         </button>
-        <a href="/admin/projects" class="btn-muted" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; padding:14px 22px;">Cancel</a>
+        <a href="/admin/projects<%= project && project.type === 'portfolio' ? '?view=portfolio' : '' %>" class="btn-muted" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; padding:14px 22px;">Cancel</a>
         <% if (project) { %>
           <button type="submit" form="deleteProjectForm" class="btn-plain" style="margin-left:auto; color:#b3402a;"
                   onclick="return confirm('Delete this project permanently?')">
