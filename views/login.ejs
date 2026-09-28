@@ -15,7 +15,7 @@
     <form action="/login" method="POST" class="login-form">
       <div class="form-group">
         <label>EMAIL ADDRESS</label>
-        <input type="email" name="email" value="admin@outsetstudio.in" required class="form-input">
+        <input type="email" name="email" required class="form-input" autocomplete="username">
       </div>
 
       <div class="form-group">
@@ -24,7 +24,7 @@
           <a href="#" class="forgot-link">Forgot Password?</a>
         </div>
         <div class="password-wrapper">
-          <input type="password" name="password" id="password" value="admin123" required class="form-input">
+          <input type="password" name="password" id="password" required class="form-input" autocomplete="current-password">
           <button type="button" class="show-btn" onclick="togglePassword()">
             <i class="fa-regular fa-eye" id="eyeIcon"></i> SHOW
           </button>
