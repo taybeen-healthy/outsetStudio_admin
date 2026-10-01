@@ -24,6 +24,21 @@ const fmtINR = (n) => {
 };
 const STATUS_CLASS = { 'In Progress': 'inprogress', 'Confirmed': 'confirmed', 'Completed': 'completed', 'Lead': 'lead' };
 
+const fmtAxis = (n) => {
+  n = Number(n) || 0;
+  if (n >= 10000000) return `${+(n / 10000000).toFixed(1)} Cr`;
+  if (n >= 100000) return `${+(n / 100000).toFixed(1)} L`;
+  if (n >= 1000) return `${Math.round(n / 1000)}k`;
+  return String(Math.round(n));
+};
+const niceCeil = (n) => {
+  if (!(n > 0)) return 100000;
+  const exp = Math.pow(10, Math.floor(Math.log10(n)));
+  const f = n / exp;
+  const nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10;
+  return nf * exp;
+};
+
 function requireAuth(req, res, next) {
   if (!req.session.isAdmin) return res.redirect('/login');
   next();
@@ -33,18 +48,48 @@ router.use(requireAuth);
 
 router.get('/dashboard', async (req, res) => {
   try {
-    const [totalProjects, newEnquiries, pendingReviews, newVendors, totalVendors, feeAgg, ratingAgg] = await Promise.all([
-      Project.countDocuments({ type: { $ne: 'portfolio' } }),
+    const now = new Date();
+    const [
+      totalProjects, newEnquiries, pendingReviews, newVendors, totalVendors,
+      feeAgg, ratingAgg, totalContacts, confirmedContacts,
+      approvedReviews, declinedReviews, portfolioProjects, publishedPortfolio,
+      approvedVendors, revAgg,
+    ] = await Promise.all([
+      Project.countDocuments(),
       Contact.countDocuments({ status: 'NEW' }),
       Testimonial.countDocuments({ status: 'pending' }),
       Vendor.countDocuments({ status: 'NEW' }),
-      Vendor.countDocuments({ status: { $ne: 'ARCHIVED' } }),
+      Vendor.countDocuments(),
       Project.aggregate([{ $group: { _id: null, total: { $sum: '$fees' } } }]),
       Testimonial.aggregate([{ $match: { status: 'approved' } }, { $group: { _id: null, avg: { $avg: '$rating' } } }]),
+      Contact.countDocuments(),
+      Contact.countDocuments({ status: 'CONFIRMED' }),
+      Testimonial.countDocuments({ status: 'approved' }),
+      Testimonial.countDocuments({ status: 'declined' }),
+      Project.countDocuments({ type: 'portfolio' }),
+      Project.countDocuments({ type: 'portfolio', active: { $ne: false } }),
+      Vendor.countDocuments({ status: 'APPROVED' }),
+      Project.aggregate([{ $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, total: { $sum: '$fees' } } }]),
     ]);
 
     const totalFees = feeAgg[0] ? feeAgg[0].total : 0;
     const avgRating = ratingAgg[0] ? ratingAgg[0].avg : 5;
+
+    const revMap = {};
+    revAgg.forEach((r) => { revMap[`${r._id.y}-${r._id.m}`] = r.total; });
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+      months.push({
+        label: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
+        value: revMap[key] || 0,
+        type: 'delivered',
+        active: i === 0,
+      });
+    }
+    const windowTotal = months.reduce((s, m) => s + m.value, 0);
+    const maxY = niceCeil(Math.max(...months.map((m) => m.value)));
 
     const stats = {
       totalProjects,
@@ -63,30 +108,34 @@ router.get('/dashboard', async (req, res) => {
       vendorRegistrationsLabel: 'New material applications',
       vendorRegistrationsHighlight: 'Active Vendors',
       vendorRegistrationsValue: `${totalVendors} On Record`,
+      totalContacts,
+      totalContactsLabel: 'All-time contact submissions',
+      totalContactsHighlight: 'Confirmed',
+      totalContactsValue: `${confirmedContacts} Confirmed`,
+      totalVendors,
+      totalVendorsLabel: 'Vendor registrations on record',
+      totalVendorsHighlight: 'Approved',
+      totalVendorsValue: `${approvedVendors} Approved`,
+      approvedReviews,
+      approvedReviewsLabel: 'Live on the public website',
+      approvedReviewsHighlight: 'Declined',
+      approvedReviewsValue: `${declinedReviews} Declined`,
+      portfolioProjects,
+      portfolioProjectsLabel: 'Portfolio pages on public site',
+      portfolioProjectsHighlight: 'Published',
+      portfolioProjectsValue: `${publishedPortfolio} Live`,
     };
 
-  const chart = {
-    maxY: 12,
-    totalYtd: 75,
-    avgMonthly: '7.5 / Month',
-    onTimeRate: '94.8%',
-    months: [
-      { label: 'JAN', value: 3, type: 'delivered' },
-      { label: 'FEB', value: 3.5, type: 'delivered' },
-      { label: 'MAR', value: 5.5, type: 'delivered' },
-      { label: 'APR', value: 5, type: 'delivered' },
-      { label: 'MAY', value: 6.5, type: 'delivered' },
-      { label: 'JUN', value: 7, type: 'delivered' },
-      { label: 'JUL', value: 5.5, type: 'delivered' },
-      { label: 'AUG', value: 8, type: 'delivered' },
-      { label: 'SEP', value: 6.5, type: 'delivered' },
-      { label: 'OCT', value: 9, type: 'delivered', active: true, badge: '11 Complete' },
-      { label: 'NOV*', value: 4.5, type: 'pipeline', estimate: 6 },
-      { label: 'DEC*', value: 5.5, type: 'pipeline', estimate: 7 }
-    ]
-  };
+    const chart = {
+      maxY,
+      yLabels: [maxY, maxY * 0.75, maxY * 0.5, maxY * 0.25, 0].map(fmtAxis),
+      totalBooked: totalFees > 0 ? fmtINR(totalFees) : '₹0',
+      avgMonthly: fmtINR(windowTotal / 12),
+      projectCount: totalProjects,
+      months,
+    };
 
-  res.render('admin/dashboard', { user: req.session.adminUser, stats, chart, activePage: 'dashboard' });
+    res.render('admin/dashboard', { user: req.session.adminUser, stats, chart, activePage: 'dashboard' });
   } catch (err) {
     console.error('Dashboard error:', err.message);
     res.status(500).render('admin/dashboard', {
@@ -97,25 +146,34 @@ router.get('/dashboard', async (req, res) => {
         newEnquiries: 0, newEnquiriesLabel: '—', newEnquiriesHighlight: '—', newEnquiriesValue: '—',
         pendingReviews: 0, pendingReviewsLabel: '—', pendingReviewsHighlight: '—', pendingReviewsValue: '—',
         vendorRegistrations: 0, vendorRegistrationsLabel: '—', vendorRegistrationsHighlight: '—', vendorRegistrationsValue: '—',
+        totalContacts: 0, totalContactsLabel: '—', totalContactsHighlight: '—', totalContactsValue: '—',
+        totalVendors: 0, totalVendorsLabel: '—', totalVendorsHighlight: '—', totalVendorsValue: '—',
+        approvedReviews: 0, approvedReviewsLabel: '—', approvedReviewsHighlight: '—', approvedReviewsValue: '—',
+        portfolioProjects: 0, portfolioProjectsLabel: '—', portfolioProjectsHighlight: '—', portfolioProjectsValue: '—',
       },
-      chart: { maxY: 12, totalYtd: 0, avgMonthly: '0 / Month', onTimeRate: '—', months: [] },
+      chart: { maxY: 100000, yLabels: ['100k', '75k', '50k', '25k', '0'], totalBooked: '₹0', avgMonthly: '₹0', projectCount: 0, months: [] },
     });
   }
 });
 
 router.get('/projects', async (req, res) => {
   try {
-    const view = req.query.view === 'portfolio' ? 'portfolio' : 'pipeline';
-    const pipelineCount = await Project.countDocuments({ type: { $ne: 'portfolio' } });
-    const portfolioCount = await Project.countDocuments({ type: 'portfolio' });
+    const pageReq = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const perPage = 10;
 
-    const docs = view === 'portfolio'
-      ? await Project.find({ type: 'portfolio' }).sort({ order: 1 })
-      : await Project.find({ type: { $ne: 'portfolio' } }).sort({ createdAt: -1 });
+    const [pipeDocs, portDocs] = await Promise.all([
+      Project.find({ type: { $ne: 'portfolio' } }).sort({ createdAt: -1 }),
+      Project.find({ type: 'portfolio' }).sort({ order: 1 }),
+    ]);
+    const docs = [...portDocs, ...pipeDocs];
+    const total = docs.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const page = Math.min(pageReq, totalPages);
+    const pageDocs = docs.slice((page - 1) * perPage, page * perPage);
 
-    const projects = docs.map((c) => {
+    const projects = pageDocs.map((c) => {
       const o = c.toObject();
-      if (view === 'portfolio') {
+      if (o.type === 'portfolio') {
         const published = o.active !== false;
         return {
           ...o,
@@ -150,10 +208,18 @@ router.get('/projects', async (req, res) => {
         feeClass: /PAID|SETTLED/i.test(String(o.feeStatus || '')) ? 'paid' : 'due',
       };
     });
-    res.render('admin/projects', { user: req.session.adminUser, projects, view, pipelineCount, portfolioCount, activePage: 'projects' });
+    res.render('admin/projects', {
+      user: req.session.adminUser, projects, activePage: 'projects',
+      page, totalPages, total,
+      showingFrom: total === 0 ? 0 : (page - 1) * perPage + 1,
+      showingTo: Math.min(total, page * perPage),
+    });
   } catch (err) {
     console.error('Projects error:', err.message);
-    res.status(500).render('admin/projects', { user: req.session.adminUser, projects: [], view: 'pipeline', pipelineCount: 0, portfolioCount: 0, activePage: 'projects' });
+    res.status(500).render('admin/projects', {
+      user: req.session.adminUser, projects: [], activePage: 'projects',
+      page: 1, totalPages: 1, total: 0, showingFrom: 0, showingTo: 0,
+    });
   }
 });
 
@@ -195,7 +261,7 @@ router.post('/projects/:id', async (req, res) => {
     console.error('Project update error:', err.message);
     req.session.flash = { title: 'Update Failed', msg: 'Could not update project.' };
   }
-  res.redirect(req.body._view === 'portfolio' ? '/admin/projects?view=portfolio' : '/admin/projects');
+  res.redirect('/admin/projects');
 });
 
 router.post('/projects/:id/delete', async (req, res) => {
@@ -210,7 +276,28 @@ router.post('/projects/:id/delete', async (req, res) => {
 
 router.get('/reviews', async (req, res) => {
   try {
-    const docs = await Testimonial.find().sort({ createdAt: -1 });
+    const pageReq = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const perPage = 10;
+    const statusKey = ['pending', 'approved', 'declined'].includes(req.query.status) ? req.query.status : 'all';
+
+    const [allCount, pendingCount, approvedCount, declinedCount] = await Promise.all([
+      Testimonial.countDocuments(),
+      Testimonial.countDocuments({ status: 'pending' }),
+      Testimonial.countDocuments({ status: 'approved' }),
+      Testimonial.countDocuments({ status: 'declined' }),
+    ]);
+    const counts = { all: allCount, pending: pendingCount, approved: approvedCount, declined: declinedCount };
+
+    const filter = statusKey === 'all' ? {} : { status: statusKey };
+    const total = statusKey === 'all' ? counts.all : counts[statusKey];
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const page = Math.min(pageReq, totalPages);
+
+    const docs = await Testimonial.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * perPage)
+      .limit(perPage);
+
     const avatars = ['sage', 'blush', 'stone'];
     const reviews = docs.map((c, i) => {
       const o = c.toObject();
@@ -228,13 +315,6 @@ router.get('/reviews', async (req, res) => {
       };
     });
 
-    const counts = {
-      all: reviews.length,
-      pending: reviews.filter(r => r.status === 'pending').length,
-      approved: reviews.filter(r => r.status === 'approved').length,
-      declined: reviews.filter(r => r.status === 'declined').length,
-    };
-
     const toastMessages = {
       approved: 'Review approved. Eligible to appear on public website.',
       declined: 'Review declined. It will not appear on the public website.'
@@ -246,13 +326,19 @@ router.get('/reviews', async (req, res) => {
       msg: toastMessages[toastKey]
     } : null;
 
-    res.render('admin/reviews', { user: req.session.adminUser, reviews, counts, toast, activePage: 'reviews' });
+    res.render('admin/reviews', {
+      user: req.session.adminUser, reviews, counts, toast, activePage: 'reviews',
+      statusKey, page, totalPages, total,
+      showingFrom: total === 0 ? 0 : (page - 1) * perPage + 1,
+      showingTo: Math.min(total, page * perPage),
+    });
   } catch (err) {
     console.error('Reviews error:', err.message);
     res.status(500).render('admin/reviews', {
       user: req.session.adminUser, reviews: [],
       counts: { all: 0, pending: 0, approved: 0, declined: 0 },
       toast: null, activePage: 'reviews',
+      statusKey: 'all', page: 1, totalPages: 1, total: 0, showingFrom: 0, showingTo: 0,
     });
   }
 });
@@ -264,7 +350,9 @@ router.post('/reviews/:id/status', async (req, res) => {
   } catch (err) {
     console.error('Review status error:', err.message);
   }
-  res.redirect(`/admin/reviews?toast=${status}`);
+  const backStatus = ['all', 'pending', 'approved', 'declined'].includes(req.body.backStatus) ? req.body.backStatus : 'all';
+  const page = Math.max(1, parseInt(req.body.page, 10) || 1);
+  res.redirect(`/admin/reviews?status=${backStatus}&page=${page}&toast=${status}`);
 });
 
 router.post('/reviews/:id/status', (req, res) => {

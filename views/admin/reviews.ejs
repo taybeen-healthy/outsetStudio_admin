@@ -6,22 +6,22 @@
       <p class="page-desc">Moderate and approve client feedback before it is published on the Outset Studio public website.</p>
     </div>
     <div class="review-filters">
-      <button type="button" class="review-filter-btn active" data-filter="all">
+      <a href="/admin/reviews" class="review-filter-btn <%= statusKey === 'all' ? 'active' : '' %>" style="text-decoration:none;">
         <span class="rf-label">ALL</span>
         <span class="rf-count">(<%= counts.all %>)</span>
-      </button>
-      <button type="button" class="review-filter-btn" data-filter="pending">
+      </a>
+      <a href="/admin/reviews?status=pending" class="review-filter-btn <%= statusKey === 'pending' ? 'active' : '' %>" style="text-decoration:none;">
         <span class="rf-label">PENDING</span>
         <span class="rf-count">(<%= counts.pending %>)</span>
-      </button>
-      <button type="button" class="review-filter-btn" data-filter="approved">
+      </a>
+      <a href="/admin/reviews?status=approved" class="review-filter-btn <%= statusKey === 'approved' ? 'active' : '' %>" style="text-decoration:none;">
         <span class="rf-label">APPROVED</span>
         <span class="rf-count">(<%= counts.approved %>)</span>
-      </button>
-      <button type="button" class="review-filter-btn" data-filter="declined">
+      </a>
+      <a href="/admin/reviews?status=declined" class="review-filter-btn <%= statusKey === 'declined' ? 'active' : '' %>" style="text-decoration:none;">
         <span class="rf-label">DECLINED</span>
         <span class="rf-count">(<%= counts.declined %>)</span>
-      </button>
+      </a>
     </div>
   </div>
 </div>
@@ -49,6 +49,9 @@
       </tr>
     </thead>
     <tbody>
+      <% if (reviews.length === 0) { %>
+        <tr><td colspan="5" style="padding:28px;text-align:center;color:#999;">No reviews found.</td></tr>
+      <% } %>
       <% reviews.forEach(function(r) { %>
         <tr class="review-row" data-status="<%= r.status %>">
           <td>
@@ -75,10 +78,14 @@
               <% if (r.status === 'pending') { %>
                 <form method="POST" action="/admin/reviews/<%= r.id %>/status">
                   <input type="hidden" name="status" value="approved">
+                  <input type="hidden" name="backStatus" value="<%= statusKey %>">
+                  <input type="hidden" name="page" value="<%= page %>">
                   <button type="submit" class="approve-btn">APPROVE</button>
                 </form>
                 <form method="POST" action="/admin/reviews/<%= r.id %>/status">
                   <input type="hidden" name="status" value="declined">
+                  <input type="hidden" name="backStatus" value="<%= statusKey %>">
+                  <input type="hidden" name="page" value="<%= page %>">
                   <button type="submit" class="decline-btn">DECLINE</button>
                 </form>
               <% } else if (r.status === 'approved') { %>
@@ -92,6 +99,28 @@
       <% }); %>
     </tbody>
   </table>
+
+  <div class="enq-table-footer">
+    <div class="enq-showing">
+      <span>Showing <%= showingFrom %>–<%= showingTo %> of <%= total %> reviews</span>
+    </div>
+    <div class="enq-pagination">
+      <% const rBase = statusKey !== 'all' ? 'status=' + statusKey + '&' : ''; %>
+      <% if (page > 1) { %>
+        <a class="enq-page-btn" href="/admin/reviews?<%= rBase %>page=<%= page - 1 %>">Prev</a>
+      <% } else { %>
+        <button class="enq-page-btn" type="button" disabled>Prev</button>
+      <% } %>
+      <% for (let p = 1; p <= totalPages; p++) { %>
+        <a class="enq-page-btn <%= p === page ? 'active' : '' %>" href="/admin/reviews?<%= rBase %>page=<%= p %>"><%= p %></a>
+      <% } %>
+      <% if (page < totalPages) { %>
+        <a class="enq-page-btn" href="/admin/reviews?<%= rBase %>page=<%= page + 1 %>">Next</a>
+      <% } else { %>
+        <button class="enq-page-btn" type="button" disabled>Next</button>
+      <% } %>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -104,19 +133,5 @@
         toast.classList.add('toast-hide');
       });
     }
-
-    var filterBtns = document.querySelectorAll('.review-filter-btn');
-    var rows = document.querySelectorAll('.review-row');
-    filterBtns.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        filterBtns.forEach(function (b) { b.classList.remove('active'); });
-        btn.classList.add('active');
-        var filter = btn.getAttribute('data-filter');
-        rows.forEach(function (row) {
-          var status = row.getAttribute('data-status');
-          row.style.display = (filter === 'all' || status === filter) ? '' : 'none';
-        });
-      });
-    });
   })();
 </script>

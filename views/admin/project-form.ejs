@@ -5,7 +5,7 @@
       <h1 class="page-title"><%= project ? 'Edit Project' : 'New Project' %></h1>
       <p class="page-desc">Update project brief details, stage, progress and fee tracking for the studio pipeline.</p>
     </div>
-    <a href="/admin/projects<%= project && project.type === 'portfolio' ? '?view=portfolio' : '' %>" class="save-btn save-btn-header" style="text-decoration:none;">&larr; Back to Projects</a>
+    <a href="/admin/projects" class="save-btn save-btn-header" style="text-decoration:none;">&larr; Back to Projects</a>
   </div>
   <div class="page-divider"></div>
 </div>
@@ -21,7 +21,6 @@
 
     <form class="account-form" action="<%= project ? '/admin/projects/' + project._id : '/admin/projects' %>" method="POST">
       <% var isPortfolio = !!(project && project.type === 'portfolio'); %>
-      <% if (isPortfolio) { %><input type="hidden" name="_view" value="portfolio"><% } %>
       <div class="form-grid-2">
         <div class="form-group">
           <label>Project Title *</label>
@@ -115,7 +114,7 @@
         <button type="submit" class="save-btn">
           <i class="fa-solid fa-floppy-disk"></i> <%= project ? 'Save Changes' : 'Create Project' %>
         </button>
-        <a href="/admin/projects<%= project && project.type === 'portfolio' ? '?view=portfolio' : '' %>" class="btn-muted" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; padding:14px 22px;">Cancel</a>
+        <a href="/admin/projects" class="btn-muted" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px; padding:14px 22px;">Cancel</a>
         <% if (project) { %>
           <button type="submit" form="deleteProjectForm" class="btn-plain" style="margin-left:auto; color:#b3402a;"
                   onclick="return confirm('Delete this project permanently?')">

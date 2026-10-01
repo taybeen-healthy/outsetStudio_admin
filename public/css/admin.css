@@ -913,9 +913,10 @@ body {
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-end;
-  width: 22px;
+  width: 54px;
+  white-space: nowrap;
   padding-bottom: 32px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-light);
   flex-shrink: 0;
 }
