@@ -174,12 +174,12 @@ router.get('/projects', async (req, res) => {
           code: o.slug || '—',
           client: o.subtitle || '—',
           location: o.location || '—',
-          scale: (o.specs && o.specs.type) || '—',
+          scale: o.scale || (o.specs && o.specs.type) || '—',
           status: published ? 'PUBLISHED' : 'DRAFT',
           statusClass: published ? 'completed' : 'lead',
           progress: published ? 100 : 0,
-          fees: '—',
-          feeStatus: published ? 'LIVE ON WEBSITE' : 'HIDDEN FROM WEBSITE',
+          fees: o.fees ? inr(o.fees) : '—',
+          feeStatus: '',
           feeClass: published ? 'paid' : 'due',
         };
       }
@@ -223,16 +223,19 @@ router.post('/projects', async (req, res) => {
   try {
     const title = (req.body.title || '').trim();
     if (!title) throw new Error('Title is required');
-    const isPortfolio = req.body.type === 'portfolio';
+    const isPortfolio = req.body.type !== 'pipeline';
     const location = (req.body.location || '').trim();
-    const subtitle = (req.body.subtitle || '').trim();
+    const scale = (req.body.scale || '').trim();
+    const fees = Number(String(req.body.fees || '').replace(/[^0-9]/g, '')) || 0;
 
     const doc = {
       title,
       titleRoman: title,
       titleItalic: '',
-      subtitle,
+      subtitle: '',
       location,
+      scale,
+      fees,
       type: isPortfolio ? 'portfolio' : '',
     };
 
@@ -244,15 +247,13 @@ router.post('/projects', async (req, res) => {
       doc.order = 0;
       doc.specs = { projectName: title, type: '', location, scope: '' };
       doc.concept = { title: '', description: '' };
-      doc.active = req.body.active === 'on' || req.body.active === 'true';
+      doc.active = true;
     } else {
-      doc.code = (req.body.code || '').trim();
-      doc.client = (req.body.client || '').trim();
-      doc.scale = (req.body.scale || '').trim();
-      doc.status = PROJECT_STATUSES.includes(req.body.status) ? req.body.status : 'Lead';
-      doc.progress = Math.min(100, Math.max(0, Number(req.body.progress) || 0));
-      doc.fees = Number(String(req.body.fees || '').replace(/[^0-9]/g, '')) || 0;
-      doc.feeStatus = (req.body.feeStatus || '').trim();
+      doc.code = '';
+      doc.client = '';
+      doc.status = 'Lead';
+      doc.progress = 0;
+      doc.feeStatus = '';
       doc.active = true;
     }
 
