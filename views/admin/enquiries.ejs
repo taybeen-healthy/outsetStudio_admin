@@ -20,8 +20,8 @@
             <input type="text" name="q" value="<%= q || '' %>" placeholder="Filter by client name, city...">
           </form>
           <div class="enq-view-toggle">
-            <button class="enq-view-btn active" type="button"><i class="fa-solid fa-list-ul"></i></button>
-            <button class="enq-view-btn" type="button"><i class="fa-solid fa-table-cells-large"></i></button>
+            <button class="enq-view-btn active" type="button" data-view="list" title="List view"><i class="fa-solid fa-list-ul"></i></button>
+            <button class="enq-view-btn" type="button" data-view="grid" title="Grid view"><i class="fa-solid fa-table-cells-large"></i></button>
           </div>
         </div>
       </div>
@@ -55,6 +55,27 @@
           <% }); %>
         </tbody>
       </table>
+
+      <div class="enq-grid">
+        <% if (enquiries.length === 0) { %>
+          <div class="enq-grid-empty">No enquiries found<%= q ? ' for "' + q + '"' : '' %>.</div>
+        <% } %>
+        <% enquiries.forEach(function(e) { %>
+          <a class="enq-grid-card <%= selected && String(selected.id) === String(e.id) ? 'selected' : '' %>"
+             href="/admin/enquiries?status=<%= activeTab %>&id=<%= e.id %><%= q ? '&q=' + encodeURIComponent(q) : '' %>">
+            <div class="enq-grid-top">
+              <div>
+                <div class="client-name"><%= e.name %></div>
+                <div class="client-email"><%= e.email || '' %></div>
+              </div>
+              <span class="date-text"><%= e.date %></span>
+            </div>
+            <div class="service-name"><%= e.service || e.typology || '—' %></div>
+            <div class="service-scope"><%= e.scope || e.message || '' %></div>
+            <div class="enq-grid-foot"><i class="fa-solid fa-location-dot"></i> <%= e.location || '—' %></div>
+          </a>
+        <% }); %>
+      </div>
 
       <div class="enq-table-footer">
         <div class="enq-showing">
@@ -156,3 +177,25 @@
     <% } %>
   </aside>
 </div>
+
+<script>
+(function () {
+  var table = document.querySelector('.enq-table');
+  var grid = document.querySelector('.enq-grid');
+  var btns = document.querySelectorAll('.enq-view-btn');
+  if (!table || !grid) return;
+  function apply(view) {
+    var gridOn = view === 'grid';
+    table.classList.toggle('hide', gridOn);
+    grid.classList.toggle('show', gridOn);
+    btns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-view') === view); });
+    try { localStorage.setItem('enqView', view); } catch (e) {}
+  }
+  var saved = 'list';
+  try { saved = localStorage.getItem('enqView') || 'list'; } catch (e) {}
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () { apply(b.getAttribute('data-view')); });
+  });
+  apply(saved);
+})();
+</script>

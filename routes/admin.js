@@ -46,6 +46,21 @@ function requireAuth(req, res, next) {
 
 router.use(requireAuth);
 
+let navCountCache = { at: 0, projects: 0, enquiries: 0 };
+router.use(async (req, res, next) => {
+  res.locals.navCounts = navCountCache;
+  if (Date.now() - navCountCache.at < 15000) return next();
+  try {
+    const [projects, enquiries] = await Promise.all([
+      Project.countDocuments(),
+      Contact.countDocuments({ status: 'NEW' }),
+    ]);
+    navCountCache = { at: Date.now(), projects, enquiries };
+    res.locals.navCounts = navCountCache;
+  } catch (e) { /* keep last known counts */ }
+  next();
+});
+
 router.get('/dashboard', async (req, res) => {
   try {
     const now = new Date();
@@ -70,14 +85,17 @@ router.get('/dashboard', async (req, res) => {
     const revMap = {};
     revAgg.forEach((r) => { revMap[`${r._id.y}-${r._id.m}`] = r.total; });
     const months = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    for (let mth = 0; mth < 12; mth++) {
+      const d = new Date(now.getFullYear(), mth, 1);
+      const value = revMap[`${d.getFullYear()}-${mth + 1}`] || 0;
+      const isFuture = d > now;
       months.push({
-        label: d.toLocaleString('en-US', { month: 'short' }).toUpperCase(),
-        value: revMap[key] || 0,
-        type: 'delivered',
-        active: i === 0,
+        label: d.toLocaleString('en-US', { month: 'short' }).toUpperCase() + (isFuture ? '*' : ''),
+        value,
+        type: value > 0 ? 'delivered' : 'pipeline',
+        active: mth === now.getMonth(),
+        display: value > 0 ? fmtINR(value) : 'No booking yet',
+        badge: value > 0 ? fmtINR(value) : null,
       });
     }
     const windowTotal = months.reduce((s, m) => s + m.value, 0);
@@ -196,6 +214,54 @@ router.get('/projects', async (req, res) => {
 });
 
 const PROJECT_STATUSES = ['Lead', 'Confirmed', 'In Progress', 'Completed'];
+
+const slugify = (s) => String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+router.post('/projects', async (req, res) => {
+  try {
+    const title = (req.body.title || '').trim();
+    if (!title) throw new Error('Title is required');
+    const isPortfolio = req.body.type === 'portfolio';
+    const location = (req.body.location || '').trim();
+    const subtitle = (req.body.subtitle || '').trim();
+
+    const doc = {
+      title,
+      titleRoman: title,
+      titleItalic: '',
+      subtitle,
+      location,
+      type: isPortfolio ? 'portfolio' : '',
+    };
+
+    if (isPortfolio) {
+      let slug = slugify(title) || `project-${Date.now().toString(36)}`;
+      if (await Project.findOne({ slug })) slug = `${slug}-${Date.now().toString(36)}`;
+      doc.slug = slug;
+      doc.image = (req.body.image || '').trim() || '/image39.png';
+      doc.order = 0;
+      doc.specs = { projectName: title, type: '', location, scope: '' };
+      doc.concept = { title: '', description: '' };
+      doc.active = req.body.active === 'on' || req.body.active === 'true';
+    } else {
+      doc.code = (req.body.code || '').trim();
+      doc.client = (req.body.client || '').trim();
+      doc.scale = (req.body.scale || '').trim();
+      doc.status = PROJECT_STATUSES.includes(req.body.status) ? req.body.status : 'Lead';
+      doc.progress = Math.min(100, Math.max(0, Number(req.body.progress) || 0));
+      doc.fees = Number(String(req.body.fees || '').replace(/[^0-9]/g, '')) || 0;
+      doc.feeStatus = (req.body.feeStatus || '').trim();
+      doc.active = true;
+    }
+
+    await Project.create(doc);
+    req.session.flash = { title: 'Project Created', msg: `"${title}" has been added${isPortfolio ? ' to the website portfolio' : ' to the pipeline'}.` };
+  } catch (err) {
+    console.error('Project create error:', err.message);
+    req.session.flash = { title: 'Create Failed', msg: 'Could not create project. A title is required.' };
+  }
+  res.redirect('/admin/projects');
+});
 
 router.get('/projects/:id/edit', async (req, res) => {
   try {

@@ -1,6 +1,11 @@
 <div class="page-header projects-header">
   <div class="page-breadcrumb breadcrumb-orange"><span class="bc-square"></span> STUDIO PROJECT</div>
-  <h1 class="page-title">Projects</h1>
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <h1 class="page-title" style="margin:0;">Projects</h1>
+    <button type="button" class="save-btn" id="openAddProject" style="border:none; cursor:pointer;">
+      <i class="fa-solid fa-plus"></i> Add Project
+    </button>
+  </div>
   <p class="page-desc projects-desc">Manage active architectural briefs, site surveys, turnkey execution tranches, vendor disbursements, and archival sign-offs across Indian metropolitan practices.</p>
 </div>
 
@@ -71,3 +76,152 @@
     </div>
   </div>
 </div>
+
+<div class="vr-modal-overlay" id="addProjectModal" style="display:none;">
+  <div class="vr-modal" style="max-width:760px;">
+    <div class="vr-modal-scroll">
+      <div class="vr-modal-head">
+        <button class="vr-modal-close" type="button" data-close-modal>&times;</button>
+        <div class="page-breadcrumb breadcrumb-orange" style="margin-bottom:10px;"><span class="bc-square"></span> STUDIO PROJECT <span class="bc-accent">• NEW ENTRY</span></div>
+        <h2 class="vr-modal-title">Add Project</h2>
+        <p class="vr-modal-desc">Website Portfolio projects appear on the public site (published within 60 seconds). Pipeline projects stay internal to the CRM.</p>
+      </div>
+
+      <div class="vr-modal-divider"></div>
+
+      <form id="addProjectForm" method="POST" action="/admin/projects" class="account-form">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Project Title *</label>
+            <input type="text" name="title" class="form-input" required placeholder="Project name">
+          </div>
+          <div class="form-group">
+            <label>Project Type</label>
+            <select name="type" id="addProjectType" class="form-input">
+              <option value="portfolio" selected>Website Portfolio (public site)</option>
+              <option value="pipeline">Pipeline (internal CRM)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Subtitle</label>
+            <input type="text" name="subtitle" class="form-input" placeholder="A thoughtfully crafted café experience...">
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <input type="text" name="location" class="form-input" placeholder="GURUGRAM / Civil Lines, Delhi">
+          </div>
+        </div>
+
+        <div class="np-only-portfolio">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Card Image URL</label>
+              <input type="text" name="image" class="form-input" placeholder="/image39.png">
+            </div>
+            <div class="form-group">
+              <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" name="active" checked style="width:16px; height:16px; accent-color:#B84E29;">
+                Published on website
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="np-only-pipeline" style="display:none;">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Project Code</label>
+              <input type="text" name="code" class="form-input" placeholder="#OS-DEL-01">
+            </div>
+            <div class="form-group">
+              <label>Client</label>
+              <input type="text" name="client" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Scale</label>
+              <input type="text" name="scale" class="form-input" placeholder="6,500 sq.ft">
+            </div>
+            <div class="form-group">
+              <label>Status</label>
+              <select name="status" class="form-input">
+                <option value="Lead" selected>Lead</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Progress (%)</label>
+              <input type="number" name="progress" min="0" max="100" value="0" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Fees (₹)</label>
+              <input type="number" name="fees" min="0" value="0" class="form-input">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Fee Status</label>
+            <input type="text" name="feeStatus" class="form-input" placeholder="DUE RETAINER / PAID FULL">
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="vr-modal-footer">
+      <span class="vr-modal-desc" style="max-width:none; margin:0;">Fields depend on the selected project type.</span>
+      <div class="vr-modal-footer-right">
+        <button type="button" class="btn-muted" data-close-modal style="padding:14px 22px; cursor:pointer; background:none;">Cancel</button>
+        <button type="submit" form="addProjectForm" class="save-btn" style="border:none; cursor:pointer;">
+          <i class="fa-solid fa-floppy-disk"></i> Create Project
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var overlay = document.getElementById('addProjectModal');
+    var openBtn = document.getElementById('openAddProject');
+    var typeSel = document.getElementById('addProjectType');
+
+    function syncFields() {
+      var isPortfolio = typeSel.value === 'portfolio';
+      overlay.querySelectorAll('.np-only-portfolio').forEach(function (el) {
+        el.style.display = isPortfolio ? '' : 'none';
+      });
+      overlay.querySelectorAll('.np-only-pipeline').forEach(function (el) {
+        el.style.display = isPortfolio ? 'none' : '';
+      });
+      overlay.querySelectorAll('.np-only-portfolio input, .np-only-portfolio select').forEach(function (el) {
+        el.disabled = !isPortfolio;
+      });
+      overlay.querySelectorAll('.np-only-pipeline input, .np-only-pipeline select').forEach(function (el) {
+        el.disabled = isPortfolio;
+      });
+    }
+
+    openBtn.addEventListener('click', function () {
+      overlay.style.display = 'flex';
+      syncFields();
+    });
+    overlay.querySelectorAll('[data-close-modal]').forEach(function (btn) {
+      btn.addEventListener('click', function () { overlay.style.display = 'none'; });
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) overlay.style.display = 'none';
+    });
+    typeSel.addEventListener('change', syncFields);
+    syncFields();
+  })();
+</script>
