@@ -51,9 +51,7 @@ router.get('/dashboard', async (req, res) => {
     const now = new Date();
     const [
       totalProjects, newEnquiries, pendingReviews, newVendors, totalVendors,
-      feeAgg, ratingAgg, totalContacts, confirmedContacts,
-      approvedReviews, declinedReviews, portfolioProjects, publishedPortfolio,
-      approvedVendors, revAgg,
+      feeAgg, ratingAgg, approvedVendors, revAgg,
     ] = await Promise.all([
       Project.countDocuments(),
       Contact.countDocuments({ status: 'NEW' }),
@@ -62,12 +60,6 @@ router.get('/dashboard', async (req, res) => {
       Vendor.countDocuments(),
       Project.aggregate([{ $group: { _id: null, total: { $sum: '$fees' } } }]),
       Testimonial.aggregate([{ $match: { status: 'approved' } }, { $group: { _id: null, avg: { $avg: '$rating' } } }]),
-      Contact.countDocuments(),
-      Contact.countDocuments({ status: 'CONFIRMED' }),
-      Testimonial.countDocuments({ status: 'approved' }),
-      Testimonial.countDocuments({ status: 'declined' }),
-      Project.countDocuments({ type: 'portfolio' }),
-      Project.countDocuments({ type: 'portfolio', active: { $ne: false } }),
       Vendor.countDocuments({ status: 'APPROVED' }),
       Project.aggregate([{ $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, total: { $sum: '$fees' } } }]),
     ]);
@@ -104,26 +96,10 @@ router.get('/dashboard', async (req, res) => {
       pendingReviewsLabel: 'Submitted by clients',
       pendingReviewsHighlight: 'Average Rating',
       pendingReviewsValue: `${avgRating.toFixed(1)} / 5.0`,
-      vendorRegistrations: newVendors,
+      vendorRegistrations: newVendors + approvedVendors,
       vendorRegistrationsLabel: 'New material applications',
       vendorRegistrationsHighlight: 'Active Vendors',
       vendorRegistrationsValue: `${totalVendors} On Record`,
-      totalContacts,
-      totalContactsLabel: 'All-time contact submissions',
-      totalContactsHighlight: 'Confirmed',
-      totalContactsValue: `${confirmedContacts} Confirmed`,
-      totalVendors,
-      totalVendorsLabel: 'Vendor registrations on record',
-      totalVendorsHighlight: 'Approved',
-      totalVendorsValue: `${approvedVendors} Approved`,
-      approvedReviews,
-      approvedReviewsLabel: 'Live on the public website',
-      approvedReviewsHighlight: 'Declined',
-      approvedReviewsValue: `${declinedReviews} Declined`,
-      portfolioProjects,
-      portfolioProjectsLabel: 'Portfolio pages on public site',
-      portfolioProjectsHighlight: 'Published',
-      portfolioProjectsValue: `${publishedPortfolio} Live`,
     };
 
     const chart = {
@@ -146,10 +122,6 @@ router.get('/dashboard', async (req, res) => {
         newEnquiries: 0, newEnquiriesLabel: '—', newEnquiriesHighlight: '—', newEnquiriesValue: '—',
         pendingReviews: 0, pendingReviewsLabel: '—', pendingReviewsHighlight: '—', pendingReviewsValue: '—',
         vendorRegistrations: 0, vendorRegistrationsLabel: '—', vendorRegistrationsHighlight: '—', vendorRegistrationsValue: '—',
-        totalContacts: 0, totalContactsLabel: '—', totalContactsHighlight: '—', totalContactsValue: '—',
-        totalVendors: 0, totalVendorsLabel: '—', totalVendorsHighlight: '—', totalVendorsValue: '—',
-        approvedReviews: 0, approvedReviewsLabel: '—', approvedReviewsHighlight: '—', approvedReviewsValue: '—',
-        portfolioProjects: 0, portfolioProjectsLabel: '—', portfolioProjectsHighlight: '—', portfolioProjectsValue: '—',
       },
       chart: { maxY: 100000, yLabels: ['100k', '75k', '50k', '25k', '0'], totalBooked: '₹0', avgMonthly: '₹0', projectCount: 0, months: [] },
     });
