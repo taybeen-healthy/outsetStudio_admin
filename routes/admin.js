@@ -114,7 +114,7 @@ router.get('/dashboard', async (req, res) => {
       pendingReviewsLabel: 'Submitted by clients',
       pendingReviewsHighlight: 'Average Rating',
       pendingReviewsValue: `${avgRating.toFixed(1)} / 5.0`,
-      vendorRegistrations: newVendors + approvedVendors,
+      vendorRegistrations: approvedVendors,
       vendorRegistrationsLabel: 'New material applications',
       vendorRegistrationsHighlight: 'Active Vendors',
       vendorRegistrationsValue: `${totalVendors} On Record`,
