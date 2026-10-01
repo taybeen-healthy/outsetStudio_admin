@@ -65,12 +65,13 @@ router.get('/dashboard', async (req, res) => {
   try {
     const now = new Date();
     const [
-      totalProjects, newEnquiries, pendingReviews, newVendors, totalVendors,
+      totalProjects, newEnquiries, pendingReviews, approvedReviews, newVendors, totalVendors,
       feeAgg, ratingAgg, approvedVendors, revAgg,
     ] = await Promise.all([
       Project.countDocuments(),
       Contact.countDocuments({ status: 'NEW' }),
       Testimonial.countDocuments({ status: 'pending' }),
+      Testimonial.countDocuments({ status: 'approved' }),
       Vendor.countDocuments({ status: 'NEW' }),
       Vendor.countDocuments(),
       Project.aggregate([{ $group: { _id: null, total: { $sum: '$fees' } } }]),
@@ -114,6 +115,7 @@ router.get('/dashboard', async (req, res) => {
       pendingReviewsLabel: 'Submitted by clients',
       pendingReviewsHighlight: 'Average Rating',
       pendingReviewsValue: `${avgRating.toFixed(1)} / 5.0`,
+      approvedReviews,
       vendorRegistrations: approvedVendors,
       vendorRegistrationsLabel: 'New material applications',
       vendorRegistrationsHighlight: 'Active Vendors',
@@ -138,7 +140,7 @@ router.get('/dashboard', async (req, res) => {
       stats: {
         totalProjects: 0, totalProjectsLabel: '—', totalProjectsHighlight: '—', totalProjectsValue: '₹0',
         newEnquiries: 0, newEnquiriesLabel: '—', newEnquiriesHighlight: '—', newEnquiriesValue: '—',
-        pendingReviews: 0, pendingReviewsLabel: '—', pendingReviewsHighlight: '—', pendingReviewsValue: '—',
+        pendingReviews: 0, pendingReviewsLabel: '—', pendingReviewsHighlight: '—', pendingReviewsValue: '—', approvedReviews: 0,
         vendorRegistrations: 0, vendorRegistrationsLabel: '—', vendorRegistrationsHighlight: '—', vendorRegistrationsValue: '—',
       },
       chart: { maxY: 100000, yLabels: ['100k', '75k', '50k', '25k', '0'], totalBooked: '₹0', avgMonthly: '₹0', projectCount: 0, months: [] },
@@ -393,13 +395,6 @@ router.post('/reviews/:id/status', async (req, res) => {
   res.redirect(`/admin/reviews?status=${backStatus}&page=${page}&toast=${status}`);
 });
 
-router.post('/reviews/:id/status', (req, res) => {
-  const status = req.body.status === 'declined' ? 'declined' : 'approved';
-  const review = reviews.find(r => r.id === Number(req.params.id));
-  if (review) review.status = status;
-  res.redirect(`/admin/reviews?toast=${status}`);
-});
-
 const ENQ_STATUS = { new: 'NEW', discussion: 'IN DISCUSSION', confirmed: 'CONFIRMED', archived: 'ARCHIVED' };
 
 router.get('/enquiries', async (req, res) => {
@@ -545,6 +540,13 @@ router.post('/enquiries/:id/assign', async (req, res) => {
 
 const VEN_STATUS = { new: 'NEW', verification: 'UNDER SCRUTINY', approved: 'APPROVED', archived: 'ARCHIVED' };
 
+const VENDOR_DEFAULT_CHECKLIST = [
+  { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: false },
+  { title: 'Material Provenance & Source Verification', desc: 'Supplier / quarry source certificates under review.', checked: false },
+  { title: 'Quality Audit of Past Works', desc: 'Reference sites pending inspection.', checked: false },
+  { title: 'Worksite Safety & Fair-Wage Compliance', desc: 'Worker insurance declaration awaiting sign-off.', checked: false },
+];
+
 router.get('/vendors', async (req, res) => {
   try {
     const statusKey = req.query.status;
@@ -583,13 +585,6 @@ router.get('/vendors', async (req, res) => {
       .skip((page - 1) * perPage)
       .limit(perPage);
 
-    const defaultChecklist = [
-      { title: 'Business & Tax Identity Authenticated', desc: 'Active GSTIN, PAN matching Ministry records.', checked: false },
-      { title: 'Material Provenance & Source Verification', desc: 'Supplier / quarry source certificates under review.', checked: false },
-      { title: 'Quality Audit of Past Works', desc: 'Reference sites pending inspection.', checked: false },
-      { title: 'Worksite Safety & Fair-Wage Compliance', desc: 'Worker insurance declaration awaiting sign-off.', checked: false },
-    ];
-
     const u = req.session.adminUser || {};
     const vendors = docs.map((c) => {
       const o = c.toObject();
@@ -622,7 +617,7 @@ router.get('/vendors', async (req, res) => {
         capabilities: (o.capabilities && o.capabilities.length) ? o.capabilities : (o.services && o.services.length ? o.services : ['—']),
         capacityStats: (o.capacityStats && o.capacityStats.length) ? o.capacityStats : ['—'],
         files: o.files || [],
-        checklist: (o.checklist && o.checklist.length) ? o.checklist : defaultChecklist,
+        checklist: (o.checklist && o.checklist.length) ? o.checklist : VENDOR_DEFAULT_CHECKLIST,
         curator: (o.curator && o.curator.name) ? o.curator : { name: u.name || 'Admin', role: u.title || 'Administrator', tier: 'TIER 3: PENDING' },
         remarks: o.remarks || '',
       };
@@ -673,24 +668,41 @@ router.post('/vendors/:id/status', async (req, res) => {
 
 router.post('/vendors/:id/checklist', async (req, res) => {
   const { index, checked, tab } = req.body;
+  const isAjax = req.get('X-Requested-With') === 'XMLHttpRequest';
   try {
     const vendor = await Vendor.findById(req.params.id);
-    if (vendor && vendor.checklist[Number(index)]) {
-      vendor.checklist[Number(index)].checked = checked === 'true' || checked === 'on';
-      await vendor.save();
-      req.session.flash = { title: 'Checklist Updated', msg: 'Verification checklist step saved.' };
+    if (!vendor) {
+      if (isAjax) return res.status(404).json({ ok: false });
+    } else {
+      const list = (vendor.checklist && vendor.checklist.length)
+        ? vendor.checklist.map((item) => (typeof item.toObject === 'function' ? item.toObject() : { ...item }))
+        : VENDOR_DEFAULT_CHECKLIST.map((item) => ({ ...item }));
+      const idx = Number(index);
+      if (list[idx]) {
+        list[idx].checked = checked === 'true' || checked === 'on';
+        await Vendor.updateOne({ _id: vendor._id }, { $set: { checklist: list } });
+        if (isAjax) return res.json({ ok: true, checked: list[idx].checked });
+        req.session.flash = { title: 'Checklist Updated', msg: 'Verification checklist step saved.' };
+      } else if (isAjax) {
+        return res.status(400).json({ ok: false });
+      }
     }
   } catch (err) {
+    console.error('Checklist save error:', err);
+    if (isAjax) return res.status(500).json({ ok: false, error: err.message });
     req.session.flash = { title: 'Update Failed', msg: 'Could not save checklist.' };
   }
   res.redirect(`/admin/vendors?status=${encodeURIComponent(tab || 'all')}&q=${encodeURIComponent(req.body.q || '')}`);
 });
 
 router.post('/vendors/:id/remarks', async (req, res) => {
+  const isAjax = req.get('X-Requested-With') === 'XMLHttpRequest';
   try {
     await Vendor.updateOne({ _id: req.params.id }, { remarks: req.body.remarks || '' });
+    if (isAjax) return res.json({ ok: true });
     req.session.flash = { title: 'Remarks Saved', msg: 'Curator remarks have been saved.' };
   } catch (err) {
+    if (isAjax) return res.status(500).json({ ok: false });
     req.session.flash = { title: 'Update Failed', msg: 'Could not save remarks.' };
   }
   res.redirect(`/admin/vendors?status=${encodeURIComponent(req.body.tab || 'all')}&q=${encodeURIComponent(req.body.q || '')}`);

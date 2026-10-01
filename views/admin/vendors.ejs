@@ -206,7 +206,7 @@
                 <input type="hidden" name="tab" value="<%= activeTab %>">
                 <input type="hidden" name="q" value="<%= q || '' %>">
                 <label class="vr-check-item <%= item.checked ? 'checked' : '' %>">
-                  <input type="checkbox" class="vr-check-input" name="checked" <%= item.checked ? 'checked' : '' %> onchange="this.form.submit()">
+                  <input type="checkbox" class="vr-check-input" name="checked" <%= item.checked ? 'checked' : '' %>>
                   <span class="vr-check-box"></span>
                   <span class="vr-check-text">
                     <span class="vr-check-title"><%= item.title %></span>
@@ -236,7 +236,7 @@
             <form action="/admin/vendors/<%= v.docId %>/remarks" method="POST">
               <input type="hidden" name="tab" value="<%= activeTab %>">
               <input type="hidden" name="q" value="<%= q || '' %>">
-              <textarea class="vr-remarks-input" name="remarks" rows="4" onchange="this.form.submit()"><%= v.remarks %></textarea>
+              <textarea class="vr-remarks-input" name="remarks" rows="4"><%= v.remarks %></textarea>
             </form>
           </div>
         </div>
@@ -295,5 +295,79 @@
       });
       document.body.style.overflow = '';
     }
+  });
+
+  function vrPost(url, data) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+      body: new URLSearchParams(data).toString(),
+      redirect: 'manual'
+    }).then(function(res) {
+      if (res.status === 0 || res.type === 'opaqueredirect') return { ok: true };
+      return res.json().then(function(j) { return res.ok && j.ok !== false ? j : { ok: false }; });
+    });
+  }
+
+  function vrToast(title, msg, isError) {
+    var old = document.getElementById('vrLiveToast');
+    if (old) old.remove();
+    var t = document.createElement('div');
+    t.className = 'status-toast';
+    t.id = 'vrLiveToast';
+    t.innerHTML = '<i class="fa-solid ' + (isError ? 'fa-triangle-exclamation' : 'fa-circle-check') + ' toast-icon" style="color:' + (isError ? '#f87171' : '#4ade80') + '"></i>' +
+      '<div class="toast-body"><div class="toast-title"></div><div class="toast-msg"></div></div>' +
+      '<button type="button" class="toast-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>';
+    t.querySelector('.toast-title').textContent = title;
+    t.querySelector('.toast-msg').textContent = msg;
+    document.body.appendChild(t);
+    var timer = setTimeout(function() { t.classList.add('toast-hide'); }, 4000);
+    t.querySelector('.toast-close').addEventListener('click', function() {
+      clearTimeout(timer);
+      t.classList.add('toast-hide');
+    });
+  }
+
+  document.querySelectorAll('.vr-check-input').forEach(function(input) {
+    input.addEventListener('change', function() {
+      var form = input.closest('form');
+      var label = input.closest('.vr-check-item');
+      if (!form || !label) return;
+      var prev = label.classList.contains('checked');
+      label.classList.toggle('checked', input.checked);
+      var entries = {};
+      new FormData(form).forEach(function(val, key) { entries[key] = val; });
+      vrPost(form.action, entries).then(function(j) {
+        if (j && j.ok) {
+          if (typeof j.checked === 'boolean') {
+            input.checked = j.checked;
+            label.classList.toggle('checked', j.checked);
+          }
+        } else {
+          input.checked = prev;
+          label.classList.toggle('checked', prev);
+          vrToast('Update Failed', 'Could not save checklist.', true);
+        }
+      }).catch(function() {
+        input.checked = prev;
+        label.classList.toggle('checked', prev);
+        vrToast('Update Failed', 'Could not save checklist.', true);
+      });
+    });
+  });
+
+  document.querySelectorAll('.vr-remarks-input').forEach(function(ta) {
+    ta.addEventListener('change', function() {
+      var form = ta.closest('form');
+      if (!form) return;
+      var entries = {};
+      new FormData(form).forEach(function(val, key) { entries[key] = val; });
+      vrPost(form.action, entries).then(function(j) {
+        if (j && j.ok) vrToast('Remarks Saved', 'Curator remarks have been saved.');
+        else vrToast('Update Failed', 'Could not save remarks.', true);
+      }).catch(function() {
+        vrToast('Update Failed', 'Could not save remarks.', true);
+      });
+    });
   });
 </script>
