@@ -1529,6 +1529,10 @@ body {
   margin-top: 6px;
 }
 
+.fee-status:empty {
+  display: none;
+}
+
 /* ===== SETTINGS / ACCOUNT ===== */
 .account-sections {
   display: flex;
