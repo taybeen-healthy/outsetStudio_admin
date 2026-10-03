@@ -116,7 +116,11 @@ router.get('/login', async (req, res) => {
       console.error('Remember login error:', err.message);
     }
   }
-  res.render('login', { error: null, layout: 'login-layout', prefillEmail: cookies[EMAIL_COOKIE] || '' });
+  res.render('login', {
+    error: null,
+    layout: 'login-layout',
+    prefillEmail: cookies[EMAIL_COOKIE] || '',
+  });
 });
 
 // Login POST - DB auth with env fallback
