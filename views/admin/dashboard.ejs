@@ -97,7 +97,7 @@
       </div>
       <div class="chart-bars">
         <% chart.months.forEach(function(m) { %>
-          <div class="bar-col <%= m.active ? 'active' : '' %>" data-tip="<%= m.label %> &bull; <%= m.display %>">
+          <div class="bar-col <%= m.active ? 'active' : '' %>">
             <div class="bar-track">
               <% if (m.estimate != null) { %>
                 <div class="bar-estimate" style="bottom: <%= (m.estimate / chart.maxY) * 100 %>%">

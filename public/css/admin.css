@@ -1036,29 +1036,6 @@ body {
   position: relative;
 }
 
-.bar-col::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--dark, #1a1a1a);
-  color: var(--white, #fff);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.4px;
-  padding: 6px 10px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
-  z-index: 6;
-}
-
-.bar-col:hover::after {
-  opacity: 1;
-}
-
 .bar-fill.delivered {
   background: var(--primary);
 }
