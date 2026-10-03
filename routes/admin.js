@@ -602,7 +602,7 @@ router.get('/vendors', async (req, res) => {
         email: o.email || '—',
         phone: o.phone || '—',
         trade: (o.trade || (o.services || []).join(' & ') || '—').toUpperCase(),
-        location: o.location || '—',
+        location: o.location || 'Not provided',
         action: status === 'NEW' ? 'REVIEW' : 'VERIFY',
         highlight: status === 'NEW',
         status,

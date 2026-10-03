@@ -38,6 +38,10 @@ body {
   margin: 0;
 }
 
+.login-body {
+  align-items: safe center;
+}
+
 .login-wrapper {
   width: 100%;
   max-width: 480px;
@@ -316,6 +320,37 @@ body {
   margin-top: 32px;
 }
 
+@media (max-height: 620px) {
+  .login-wrapper {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 30px 26px 26px;
+  }
+
+  .login-title {
+    font-size: 32px;
+    margin-bottom: 8px;
+  }
+
+  .login-subtitle {
+    margin-bottom: 20px;
+  }
+
+  .login-form .form-group {
+    margin-bottom: 15px;
+  }
+
+  .login-divider {
+    margin-top: 18px;
+  }
+
+  .login-btn {
+    padding: 14px;
+  }
+}
+
 /* ===== ADMIN LAYOUT ===== */
 .admin-wrapper {
   display: flex;
@@ -474,6 +509,7 @@ body {
 .main-content {
   flex: 1;
   margin-left: 280px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -1126,7 +1162,7 @@ body {
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .table-header {
@@ -1324,7 +1360,12 @@ body {
   background: var(--white);
   border: 1px solid #e4e0d8;
   border-radius: 0;
-  overflow: visible;
+  overflow: auto;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .projects-table {
@@ -2387,6 +2428,7 @@ body {
 
 .vr-table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -2469,6 +2511,7 @@ body {
 .vr-contact-email {
   font-size: 13.5px;
   color: var(--text-dark);
+  overflow-wrap: break-word;
 }
 
 .vr-contact-phone {
@@ -3953,6 +3996,10 @@ body {
 
   .page-content {
     padding: 20px;
+  }
+
+  .enquiries-layout {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -1,3 +1,4 @@
+<% function escWbr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }).replace(/[.@]/g, '$&<wbr>'); } %>
 <div class="vr-header">
   <div class="vr-breadcrumb">
     <span class="vr-bc-num">04</span>
@@ -31,6 +32,7 @@
     </form>
   </div>
 
+  <div class="table-scroll">
   <table class="vr-table">
     <thead>
       <tr>
@@ -56,7 +58,7 @@
           </td>
           <td><span class="vr-date"><%= v.registered %></span></td>
           <td>
-            <div class="vr-contact-email"><%= v.email %></div>
+            <div class="vr-contact-email"><%- escWbr(v.email) %></div>
             <div class="vr-contact-phone"><%= v.phone %></div>
           </td>
           <td><span class="vr-trade-chip"><%= v.trade %></span></td>
@@ -71,6 +73,7 @@
       <% }); %>
     </tbody>
   </table>
+  </div>
 
   <div class="vr-table-footer">
     <span class="vr-showing">Showing <%= showingFrom %>–<%= showingTo %> of <%= totalRegistrations %> registrations</span>
@@ -134,7 +137,7 @@
             <div class="vr-info-card">
               <div class="vr-info-label">PRIMARY CONTACT</div>
               <div class="vr-info-phone"><%= v.phone %></div>
-              <div class="vr-info-email"><%= v.email %></div>
+              <div class="vr-info-email"><%- escWbr(v.email) %></div>
             </div>
             <div class="vr-info-card">
               <div class="vr-info-label">REGIONAL WORKSHOP</div>
