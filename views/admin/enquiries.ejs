@@ -161,8 +161,9 @@
 
       <form action="/admin/enquiries/<%= selected.id %>/status" method="POST">
         <input type="hidden" name="tab" value="<%= activeTab %>">
-        <input type="hidden" name="status" value="IN DISCUSSION">
-        <button class="enq-survey-btn" type="submit"><i class="fa-solid fa-arrow-up"></i> INITIATE SITE SURVEY</button>
+        <% if (selected.status === 'NEW') { %>
+          <button class="enq-survey-btn" type="submit" name="status" value="IN DISCUSSION"><i class="fa-solid fa-arrow-up"></i> INITIATE SITE SURVEY</button>
+        <% } %>
         <div class="enq-action-row">
           <button class="enq-action-btn" type="submit" name="status" value="IN DISCUSSION">Mark Discussion</button>
           <button class="enq-action-btn danger" type="submit" name="status" value="ARCHIVED">Decline / Archive</button>

@@ -2040,11 +2040,10 @@ body {
   padding: 16px 24px;
 }
 
-.reviews-table th:nth-child(1) { width: 24%; }
-.reviews-table th:nth-child(2) { width: 16%; }
-.reviews-table th:nth-child(3) { width: 30%; }
-.reviews-table th:nth-child(4) { width: 12%; }
-.reviews-table th:nth-child(5) { width: 18%; }
+.reviews-table th:nth-child(1) { width: 26%; }
+.reviews-table th:nth-child(2) { width: 40%; }
+.reviews-table th:nth-child(3) { width: 14%; }
+.reviews-table th:nth-child(4) { width: 20%; }
 
 .reviews-table th.th-right,
 .reviews-table td.td-actions {

@@ -42,7 +42,6 @@
     <thead>
       <tr>
         <th>CLIENT &amp; COMPANY</th>
-        <th>PROJECT / TYPOLOGY</th>
         <th>TESTIMONIAL</th>
         <th>DATE</th>
         <th class="th-right">ACTIONS</th>
@@ -50,7 +49,7 @@
     </thead>
     <tbody>
       <% if (reviews.length === 0) { %>
-        <tr><td colspan="5" style="padding:28px;text-align:center;color:#999;">No reviews found.</td></tr>
+        <tr><td colspan="4" style="padding:28px;text-align:center;color:#999;">No reviews found.</td></tr>
       <% } %>
       <% reviews.forEach(function(r) { %>
         <tr class="review-row" data-status="<%= r.status %>">
@@ -62,10 +61,6 @@
                 <div class="review-client-company"><%= r.company %></div>
               </div>
             </div>
-          </td>
-          <td>
-            <div class="review-project-name"><%= r.project %></div>
-            <div class="review-typology"><%= r.typology %></div>
           </td>
           <td>
             <div class="review-testimonial">"<%= r.text %>"</div>
